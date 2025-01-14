@@ -1,3 +1,0 @@
-npx create-react-app game-portal
-cd game-portal
-npm install react-router-dom styled-components 
