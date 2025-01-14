@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Portal</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #2c3e50;
+            color: white;
+        }
+
+        .header {
+            text-align: center;
+            padding: 40px;
+            background: #34495e;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #ecf0f1;
+            font-size: 2.5em;
+        }
+
+        .games-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            padding: 20px;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .game-card {
+            background: #34495e;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: transform 0.3s;
+            cursor: pointer;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .game-preview {
+            width: 100%;
+            height: 200px;
+            background-size: cover;
+            background-position: center;
+            border-bottom: 3px solid #3498db;
+        }
+
+        .game-info {
+            padding: 20px;
+        }
+
+        .game-info h2 {
+            margin: 0 0 10px 0;
+            color: #3498db;
+        }
+
+        .game-info p {
+            margin: 0;
+            color: #bdc3c7;
+            font-size: 0.9em;
+        }
+
+        .play-button {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 5px;
+            margin-top: 15px;
+            text-decoration: none;
+            transition: background 0.3s;
+        }
+
+        .play-button:hover {
+            background: #2980b9;
+        }
+
+        @media (max-width: 768px) {
+            .games-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Game Portal</h1>
+    </div>
+
+    <div class="games-container">
+        <div class="game-card">
+            <div class="game-preview" style="background-image: url('https://i.imgur.com/XQnHqL9.png')"></div>
+            <div class="game-info">
+                <h2>Snake Game</h2>
+                <p>Classic snake game with modern graphics. Collect apples and grow longer, but don't hit the walls or yourself!</p>
+                <a href="snake.html" class="play-button">Play Now</a>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="game-preview" style="background-image: url('https://i.imgur.com/7tZcPGf.png')"></div>
+            <div class="game-info">
+                <h2>Monster Hunter</h2>
+                <p>3D-style shooting game. Hunt monsters, collect weapons, and survive in an ever-changing maze!</p>
+                <a href="game.html" class="play-button">Play Now</a>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="game-preview" style="background-image: linear-gradient(45deg, #3498db, #2ecc71)"></div>
+            <div class="game-info">
+                <h2>Coming Soon</h2>
+                <p>More games are being developed and will be added soon!</p>
+                <span class="play-button" style="background: #95a5a6; cursor: not-allowed;">Coming Soon</span>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="game-preview" style="background-image: linear-gradient(45deg, #e74c3c, #c0392b)"></div>
+            <div class="game-info">
+                <h2>Color Match</h2>
+                <p>Test your reflexes! Match the falling blocks with the correct color zones. Time your moves perfectly!</p>
+                <a href="color-match.html" class="play-button">Play Now</a>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="game-preview" style="background-image: linear-gradient(45deg, #9b59b6, #8e44ad)"></div>
+            <div class="game-info">
+                <h2>Memory Cards</h2>
+                <p>Classic memory game with a twist! Match pairs of cards while racing against time. Features different difficulty levels!</p>
+                <a href="memory.html" class="play-button">Play Now</a>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="game-preview" style="background-image: linear-gradient(45deg, #95a5a6, #7f8c8d)"></div>
+            <div class="game-info">
+                <h2>Pong</h2>
+                <p>Classic arcade tennis game. Use your paddle to hit the ball past your opponent!</p>
+                <a href="pong.html" class="play-button">Play Now</a>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="game-preview" style="background-image: linear-gradient(45deg, #2ecc71, #27ae60)"></div>
+            <div class="game-info">
+                <h2>Flappy Bird</h2>
+                <p>Guide your bird through pipes by tapping space. How far can you go?</p>
+                <a href="flappy-bird.html" class="play-button">Play Now</a>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="game-preview" style="background-image: linear-gradient(45deg, #2ecc71, #27ae60)"></div>
+            <div class="game-info">
+                <h2>Word Scramble</h2>
+                <p>Race against the clock to unscramble words. Multiple categories and difficulty levels available!</p>
+                <a href="word-scramble.html" class="play-button">Play Now</a>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="game-preview" style="background-image: linear-gradient(45deg, #1abc9c, #16a085)"></div>
+            <div class="game-info">
+                <h2>Brick Breaker</h2>
+                <p>Classic arcade action! Break all the bricks with your paddle and ball. Features power-ups and multiple levels!</p>
+                <a href="brick-breaker.html" class="play-button">Play Now</a>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="game-preview" style="background-image: linear-gradient(45deg, #e67e22, #d35400)"></div>
+            <div class="game-info">
+                <h2>Math Challenge</h2>
+                <p>Quick-fire math problems with increasing difficulty. Test your mental math skills under pressure!</p>
+                <a href="math-challenge.html" class="play-button">Play Now</a>
+            </div>
+        </div>
+
+        <div class="game-card">
+            <div class="game-preview" style="background-image: linear-gradient(45deg, #3498db, #2980b9)"></div>
+            <div class="game-info">
+                <h2>Tetris</h2>
+                <p>Classic block-stacking puzzle game. Arrange falling pieces to clear lines and score points!</p>
+                <a href="tetris.html" class="play-button">Play Now</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Add click handler for game cards
+        document.querySelectorAll('.game-card').forEach(card => {
+            const playButton = card.querySelector('.play-button');
+            if (playButton.href) {
+                card.addEventListener('click', () => {
+                    window.location.href = playButton.href;
+                });
+            }
+        });
+    </script>
+</body>
+</html> 

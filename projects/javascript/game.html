@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Monster Hunter</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #2c3e50;
+            perspective: 1000px;
+            font-family: Arial, sans-serif;
+        }
+
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            transform-style: preserve-3d;
+            background: linear-gradient(#1a2634 0%, #2c3e50 100%);
+        }
+
+        #floor {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                90deg,
+                #34495e 0px,
+                #34495e 50px,
+                #2c3e50 50px,
+                #2c3e50 100px
+            ),
+            repeating-linear-gradient(
+                0deg,
+                #34495e 0px,
+                #34495e 50px,
+                #2c3e50 50px,
+                #2c3e50 100px
+            );
+            transform: rotateX(60deg);
+            transform-origin: center bottom;
+        }
+
+        #player {
+            position: absolute;
+            width: 60px;
+            height: 80px;
+            transform-style: preserve-3d;
+            transition: transform 0.1s;
+            z-index: 100;
+        }
+
+        .player-body {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            transform-style: preserve-3d;
+        }
+
+        .head {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #3498db;
+            border-radius: 50%;
+            top: 0;
+            left: 15px;
+            transform: translateZ(15px);
+        }
+
+        .torso {
+            position: absolute;
+            width: 40px;
+            height: 40px;
+            background: #2980b9;
+            top: 30px;
+            left: 10px;
+            transform: translateZ(10px);
+        }
+
+        .gun {
+            position: absolute;
+            width: 40px;
+            height: 8px;
+            background: #34495e;
+            top: 40px;
+            left: 40px;
+            transform: translateZ(15px);
+            transform-origin: left center;
+        }
+
+        .monster {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            transform-style: preserve-3d;
+        }
+
+        .monster-body {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #e74c3c;
+            border-radius: 8px;
+            transform: translateZ(25px);
+            animation: float 2s infinite ease-in-out;
+        }
+
+        .monster-eye {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #fff;
+            border-radius: 50%;
+            top: 10px;
+        }
+
+        .monster-eye.left {
+            left: 8px;
+        }
+
+        .monster-eye.right {
+            right: 8px;
+        }
+
+        .monster-mouth {
+            position: absolute;
+            width: 30px;
+            height: 8px;
+            background: #c0392b;
+            bottom: 10px;
+            left: 10px;
+            border-radius: 4px;
+        }
+
+        .bullet {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background: #f1c40f;
+            border-radius: 50%;
+            transform: translateZ(15px);
+        }
+
+        .weapon-drop {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            border-radius: 5px;
+            transform: translateZ(15px);
+            animation: float 1.5s infinite ease-in-out;
+            transform-style: preserve-3d;
+        }
+
+        .weapon-body {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: #9b59b6;
+            transform: translateZ(10px);
+        }
+
+        .weapon-barrel {
+            position: absolute;
+            width: 8px;
+            height: 12px;
+            background: #8e44ad;
+            left: 6px;
+            top: -6px;
+            transform: translateZ(10px);
+        }
+
+        .monster-health {
+            position: absolute;
+            width: 50px;
+            height: 4px;
+            background: #c0392b;
+            top: -10px;
+            transform: translateZ(25px);
+        }
+
+        .monster-health-bar {
+            height: 100%;
+            width: 100%;
+            background: #27ae60;
+            transition: width 0.2s;
+        }
+
+        #score {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            z-index: 1000;
+        }
+
+        #ammo-display {
+            position: fixed;
+            top: 60px;
+            left: 20px;
+            color: white;
+            font-size: 18px;
+            z-index: 1000;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateZ(25px) translateY(0px); }
+            50% { transform: translateZ(25px) translateY(-10px); }
+        }
+
+        .shadow {
+            position: absolute;
+            width: 100%;
+            height: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 50%;
+            bottom: -10px;
+            transform: rotateX(90deg);
+        }
+
+        .wall {
+            position: absolute;
+            background: #2c3e50;
+            transform-style: preserve-3d;
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        .wall-vertical {
+            width: 20px;
+            height: 100px;
+            transform: translateZ(50px);
+        }
+
+        .wall-horizontal {
+            width: 100px;
+            height: 20px;
+            transform: translateZ(50px);
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="game-container">
+        <div id="floor"></div>
+        <div id="player">
+            <div class="player-body">
+                <div class="head"></div>
+                <div class="torso"></div>
+                <div class="gun"></div>
+                <div class="shadow"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const player = document.getElementById('player');
+        const gameContainer = document.getElementById('game-container');
+        const scoreElement = document.getElementById('score');
+        
+        let playerX = window.innerWidth / 2;
+        let playerY = window.innerHeight / 2;
+        let score = 0;
+        const speed = 5;
+        let monsters = [];
+        let currentLevel = 1;
+        let walls = [];
+        const NORMAL_GUN = { 
+            damage: 10, 
+            ammo: 10, 
+            bounces: 2, 
+            color: '#f1c40f' 
+        };
+        const SPECIAL_GUNS = [
+            { damage: 20, ammo: 10, bounces: 2, color: '#e74c3c' },
+            { damage: 25, ammo: 10, bounces: 2, color: '#f1c40f' },
+            { damage: 30, ammo: 10, bounces: 2, color: '#2ecc71' }
+        ];
+        let currentWeaponDamage = NORMAL_GUN.damage;
+        let currentWeaponAmmo = 10;
+        let currentWeaponBounces = 2;
+        let currentWeaponColor = '#f1c40f';
+        let weaponDrops = [];
+
+        // Add ammo display to HTML
+        const ammoDisplay = document.createElement('div');
+        ammoDisplay.id = 'ammo-display';
+        document.body.appendChild(ammoDisplay);
+        
+        function updateAmmoDisplay() {
+            ammoDisplay.textContent = currentWeaponAmmo === Infinity ? 
+                'Ammo: ∞' : `Ammo: ${currentWeaponAmmo}`;
+        }
+
+        function updatePlayerPosition() {
+            player.style.left = (playerX - 30) + 'px';
+            player.style.top = (playerY - 40) + 'px';
+        }
+
+        function createMonster() {
+            const monster = document.createElement('div');
+            monster.className = 'monster';
+            
+            const monsterBody = document.createElement('div');
+            monsterBody.className = 'monster-body';
+            
+            const leftEye = document.createElement('div');
+            leftEye.className = 'monster-eye left';
+            
+            const rightEye = document.createElement('div');
+            rightEye.className = 'monster-eye right';
+            
+            const mouth = document.createElement('div');
+            mouth.className = 'monster-mouth';
+            
+            const shadow = document.createElement('div');
+            shadow.className = 'shadow';
+
+            monsterBody.appendChild(leftEye);
+            monsterBody.appendChild(rightEye);
+            monsterBody.appendChild(mouth);
+            monster.appendChild(monsterBody);
+            monster.appendChild(shadow);
+
+            const x = Math.random() * (window.innerWidth - 100) + 50;
+            const y = Math.random() * (window.innerHeight - 100) + 50;
+            
+            monster.style.left = x + 'px';
+            monster.style.top = y + 'px';
+            
+            // Add health bar
+            const healthBar = document.createElement('div');
+            healthBar.className = 'monster-health';
+            const healthFill = document.createElement('div');
+            healthFill.className = 'monster-health-bar';
+            healthBar.appendChild(healthFill);
+            monster.appendChild(healthBar);
+
+            gameContainer.appendChild(monster);
+            monsters.push({
+                element: monster,
+                x: x,
+                y: y,
+                health: 100,
+                healthBar: healthFill
+            });
+        }
+
+        function createWeaponDrop(x, y, weaponType) {
+            const weapon = document.createElement('div');
+            weapon.className = 'weapon-drop';
+            weapon.style.left = x + 'px';
+            weapon.style.top = y + 'px';
+
+            const weaponBody = document.createElement('div');
+            weaponBody.className = 'weapon-body';
+            weaponBody.style.background = weaponType.color;
+
+            const barrel = document.createElement('div');
+            barrel.className = 'weapon-barrel';
+            barrel.style.background = weaponType.color;
+
+            weapon.appendChild(weaponBody);
+            weapon.appendChild(barrel);
+            gameContainer.appendChild(weapon);
+
+            weaponDrops.push({
+                element: weapon,
+                x: x,
+                y: y,
+                ...weaponType
+            });
+        }
+
+        function shoot(event) {
+            if (currentWeaponAmmo === 0) {
+                // Reset to normal gun when out of ammo
+                currentWeaponDamage = NORMAL_GUN.damage;
+                currentWeaponAmmo = 10;
+                currentWeaponBounces = NORMAL_GUN.bounces;
+                currentWeaponColor = NORMAL_GUN.color;
+                updateAmmoDisplay();
+                scoreElement.textContent = `Score: ${score} | Damage: ${currentWeaponDamage}`;
+                return;
+            }
+
+            const bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            bullet.style.background = currentWeaponColor;
+            let bounceCount = 0;
+
+            currentWeaponAmmo--;
+            updateAmmoDisplay();
+
+            const rect = player.getBoundingClientRect();
+            const startX = rect.left + 60;
+            const startY = rect.top + 40;
+            
+            bullet.style.left = startX + 'px';
+            bullet.style.top = startY + 'px';
+            
+            const targetX = event.clientX;
+            const targetY = event.clientY;
+            
+            const angle = Math.atan2(targetY - startY, targetX - startX);
+            const velocity = 15;
+            const velocityX = Math.cos(angle) * velocity;
+            const velocityY = Math.sin(angle) * velocity;
+
+            gameContainer.appendChild(bullet);
+
+            const bulletInterval = setInterval(() => {
+                const currentX = parseFloat(bullet.style.left);
+                const currentY = parseFloat(bullet.style.top);
+                
+                let newX = currentX + velocityX;
+                let newY = currentY + velocityY;
+                let didBounce = false;
+
+                // Check collision with walls
+                const bulletRect = bullet.getBoundingClientRect();
+                for(let wall of walls) {
+                    const wallRect = wall.element.getBoundingClientRect();
+                    
+                    // Predict next position
+                    const nextBulletRect = {
+                        left: bulletRect.left + velocityX,
+                        right: bulletRect.right + velocityX,
+                        top: bulletRect.top + velocityY,
+                        bottom: bulletRect.bottom + velocityY
+                    };
+
+                    if(nextBulletRect.left < wallRect.right &&
+                       nextBulletRect.right > wallRect.left &&
+                       nextBulletRect.top < wallRect.bottom &&
+                       nextBulletRect.bottom > wallRect.top) {
+                        
+                        if (bounceCount < currentWeaponBounces) {
+                            // Determine bounce direction
+                            const hitVertical = 
+                                Math.abs(bulletRect.left - wallRect.right) < Math.abs(velocityX) ||
+                                Math.abs(bulletRect.right - wallRect.left) < Math.abs(velocityX);
+                            
+                            const hitHorizontal = 
+                                Math.abs(bulletRect.top - wallRect.bottom) < Math.abs(velocityY) ||
+                                Math.abs(bulletRect.bottom - wallRect.top) < Math.abs(velocityY);
+
+                            if (hitVertical) {
+                                velocityX *= -1;
+                                didBounce = true;
+                            }
+                            if (hitHorizontal) {
+                                velocityY *= -1;
+                                didBounce = true;
+                            }
+                            
+                            if (didBounce) {
+                                bounceCount++;
+                                // Adjust position to prevent sticking to wall
+                                newX = currentX;
+                                newY = currentY;
+                            }
+                        } else {
+                            bullet.remove();
+                            clearInterval(bulletInterval);
+                            return;
+                        }
+                    }
+                }
+
+                // Update bullet position
+                bullet.style.left = newX + 'px';
+                bullet.style.top = newY + 'px';
+
+                // Check collision with monsters
+                monsters.forEach((monster, index) => {
+                    const monsterRect = monster.element.getBoundingClientRect();
+                    const bulletRect = bullet.getBoundingClientRect();
+
+                    if (bulletRect.left < monsterRect.right &&
+                        bulletRect.right > monsterRect.left &&
+                        bulletRect.top < monsterRect.bottom &&
+                        bulletRect.bottom > monsterRect.top) {
+                        
+                        // Damage monster
+                        monster.health -= currentWeaponDamage;
+                        monster.healthBar.style.width = `${monster.health}%`;
+                        bullet.remove();
+                        clearInterval(bulletInterval);
+                        
+                        if (monster.health <= 0) {
+                            // Monster defeated
+                            monster.element.remove();
+                            monsters.splice(index, 1);
+                            
+                            // Chance to drop better weapon (20% chance)
+                            if (Math.random() < 0.2) {
+                                const randomGun = SPECIAL_GUNS[Math.floor(Math.random() * SPECIAL_GUNS.length)];
+                                createWeaponDrop(monster.x, monster.y, randomGun);
+                            }
+                            
+                            score++;
+                            scoreElement.textContent = `Score: ${score}`;
+                            
+                            if(score % 10 === 0) {
+                                currentLevel++;
+                                createLevel(currentLevel);
+                            }
+                            
+                            createMonster();
+                        }
+                    }
+                });
+
+                // Remove bullet if it goes off screen
+                if (currentX < 0 || currentX > window.innerWidth ||
+                    currentY < 0 || currentY > window.innerHeight) {
+                    bullet.remove();
+                    clearInterval(bulletInterval);
+                }
+            }, 16);
+        }
+
+        document.addEventListener('click', shoot);
+
+        document.addEventListener('keydown', (event) => {
+            switch(event.key) {
+                case 'w':
+                    playerY = Math.max(80, playerY - speed);
+                    break;
+                case 's':
+                    playerY = Math.min(window.innerHeight - 40, playerY + speed);
+                    break;
+                case 'a':
+                    playerX = Math.max(30, playerX - speed);
+                    player.style.transform = 'scaleX(-1)';
+                    break;
+                case 'd':
+                    playerX = Math.min(window.innerWidth - 30, playerX + speed);
+                    player.style.transform = 'scaleX(1)';
+                    break;
+            }
+            updatePlayerPosition();
+            
+            // Check collision with weapon drops
+            const playerRect = player.getBoundingClientRect();
+            weaponDrops.forEach((weapon, index) => {
+                const weaponRect = weapon.element.getBoundingClientRect();
+                if (playerRect.left < weaponRect.right &&
+                    playerRect.right > weaponRect.left &&
+                    playerRect.top < weaponRect.bottom &&
+                    playerRect.bottom > weaponRect.top) {
+                    
+                    // Pickup weapon
+                    currentWeaponDamage = weapon.damage;
+                    currentWeaponAmmo = weapon.ammo;
+                    currentWeaponBounces = weapon.bounces;
+                    currentWeaponColor = weapon.color;
+                    weapon.element.remove();
+                    weaponDrops.splice(index, 1);
+                    
+                    updateAmmoDisplay();
+                    scoreElement.textContent = `Score: ${score} | Damage: ${currentWeaponDamage}`;
+                }
+            });
+        });
+
+        function createWall(x, y, isVertical) {
+            const wall = document.createElement('div');
+            wall.className = `wall ${isVertical ? 'wall-vertical' : 'wall-horizontal'}`;
+            wall.style.left = x + 'px';
+            wall.style.top = y + 'px';
+            gameContainer.appendChild(wall);
+            walls.push({
+                element: wall,
+                x: x,
+                y: y,
+                width: isVertical ? 20 : 100,
+                height: isVertical ? 100 : 20
+            });
+        }
+
+        function createLevel(level) {
+            // Clear existing walls
+            walls.forEach(wall => wall.element.remove());
+            walls = [];
+
+            // Create maze-like pattern with increasing complexity
+            const numWalls = level * 5; // More walls for each level
+            const gridSize = 100;
+            
+            // Create border walls
+            createWall(0, 0, true);
+            createWall(window.innerWidth - 20, 0, true);
+            createWall(0, 0, false);
+            createWall(0, window.innerHeight - 20, false);
+            
+            // Create internal walls
+            for(let i = 0; i < numWalls; i++) {
+                const x = Math.floor(Math.random() * (window.innerWidth / gridSize)) * gridSize;
+                const y = Math.floor(Math.random() * (window.innerHeight / gridSize)) * gridSize;
+                const isVertical = Math.random() > 0.5;
+                
+                // Ensure walls don't spawn on player
+                const distToPlayer = Math.sqrt(
+                    Math.pow(x - playerX, 2) + Math.pow(y - playerY, 2)
+                );
+                
+                if(distToPlayer > 150) {
+                    createWall(x, y, isVertical);
+                }
+            }
+        }
+
+        function checkCollision() {
+            // Check wall collisions
+            const playerRect = player.getBoundingClientRect();
+            for(let wall of walls) {
+                const wallRect = wall.element.getBoundingClientRect();
+                if(playerRect.left < wallRect.right &&
+                   playerRect.right > wallRect.left &&
+                   playerRect.top < wallRect.bottom &&
+                   playerRect.bottom > wallRect.top) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        // Initial setup
+        updatePlayerPosition();
+        createMonster();
+        createLevel(1);
+
+        // Make player face mouse
+        document.addEventListener('mousemove', (event) => {
+            const rect = player.getBoundingClientRect();
+            const playerCenterX = rect.left + rect.width / 2;
+            const playerCenterY = rect.top + rect.height / 2;
+            
+            // Calculate angle between player and mouse
+            const angle = Math.atan2(
+                event.clientY - playerCenterY,
+                event.clientX - playerCenterX
+            ) * 180 / Math.PI;
+            
+            const gun = player.querySelector('.gun');
+            const facingLeft = event.clientX < playerCenterX;
+            
+            if (facingLeft) {
+                player.style.transform = 'scaleX(-1)';
+                gun.style.transform = `translateZ(15px) rotate(${angle}deg) scaleY(-1)`;
+            } else {
+                player.style.transform = 'scaleX(1)';
+                gun.style.transform = `translateZ(15px) rotate(${angle}deg)`;
+            }
+        });
+    </script>
+</body>
+</html> 

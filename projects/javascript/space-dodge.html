@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Space Dodge</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #111;
+            font-family: Arial, sans-serif;
+        }
+
+        #game-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #spaceship {
+            width: 50px;
+            height: 50px;
+            position: absolute;
+            left: 50%;
+            bottom: 50px;
+            transform: translateX(-50%);
+            transition: transform 0.1s;
+        }
+
+        .ship-body {
+            width: 100%;
+            height: 100%;
+            background: #3498db;
+            clip-path: polygon(50% 0%, 0% 100%, 100% 100%);
+            position: relative;
+        }
+
+        .flame {
+            position: absolute;
+            bottom: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 20px;
+            height: 30px;
+            background: #e74c3c;
+            clip-path: polygon(50% 100%, 0% 0%, 100% 0%);
+            animation: flicker 0.2s infinite;
+        }
+
+        .asteroid {
+            position: absolute;
+            background: #95a5a6;
+            border-radius: 50%;
+            transform: rotate(45deg);
+        }
+
+        .power-up {
+            position: absolute;
+            width: 30px;
+            height: 30px;
+            background: #f1c40f;
+            border-radius: 50%;
+            animation: pulse 1s infinite;
+        }
+
+        #score {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            color: white;
+            font-size: 24px;
+            z-index: 1;
+        }
+
+        #shield-indicator {
+            position: fixed;
+            top: 60px;
+            left: 20px;
+            color: #3498db;
+            font-size: 20px;
+        }
+
+        #menu {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            z-index: 100;
+        }
+
+        .button {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+        }
+
+        #home-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1;
+        }
+
+        @keyframes flicker {
+            0%, 100% { height: 30px; }
+            50% { height: 25px; }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .shield {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            border: 3px solid #3498db;
+            top: -10px;
+            left: -10px;
+            animation: shield-pulse 1s infinite;
+        }
+
+        @keyframes shield-pulse {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.8; }
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="score">Score: 0</div>
+        <div id="shield-indicator"></div>
+        <a href="game-portal.html" class="button" id="home-button">Home</a>
+        <div id="spaceship">
+            <div class="ship-body">
+                <div class="flame"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="menu">
+        <h2>Space Dodge</h2>
+        <p>Use A and D keys to dodge asteroids!</p>
+        <p>Collect yellow power-ups for shields!</p>
+        <div class="button" onclick="startGame()">Start Game</div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const spaceship = document.getElementById('spaceship');
+        const scoreElement = document.getElementById('score');
+        const shieldIndicator = document.getElementById('shield-indicator');
+        const menu = document.getElementById('menu');
+
+        let score = 0;
+        let gameRunning = false;
+        let shipX = window.innerWidth / 2;
+        let asteroids = [];
+        let powerUps = [];
+        let shieldActive = false;
+        let gameLoop;
+        const speed = 5;
+
+        function updateShipPosition() {
+            shipX = Math.max(25, Math.min(window.innerWidth - 75, shipX));
+            spaceship.style.left = shipX + 'px';
+        }
+
+        function createAsteroid() {
+            const asteroid = document.createElement('div');
+            asteroid.className = 'asteroid';
+            const size = 20 + Math.random() * 30;
+            asteroid.style.width = size + 'px';
+            asteroid.style.height = size + 'px';
+            asteroid.style.left = Math.random() * (window.innerWidth - size) + 'px';
+            asteroid.style.top = '-50px';
+            gameContainer.appendChild(asteroid);
+            return {
+                element: asteroid,
+                speed: 2 + Math.random() * 3,
+                position: -50,
+                size: size
+            };
+        }
+
+        function createPowerUp() {
+            const powerUp = document.createElement('div');
+            powerUp.className = 'power-up';
+            powerUp.style.left = Math.random() * (window.innerWidth - 30) + 'px';
+            powerUp.style.top = '-30px';
+            gameContainer.appendChild(powerUp);
+            return {
+                element: powerUp,
+                speed: 2,
+                position: -30
+            };
+        }
+
+        function activateShield() {
+            shieldActive = true;
+            shieldIndicator.textContent = '🛡️ Shield Active';
+            const shield = document.createElement('div');
+            shield.className = 'shield';
+            spaceship.appendChild(shield);
+            
+            setTimeout(() => {
+                shieldActive = false;
+                shieldIndicator.textContent = '';
+                shield.remove();
+            }, 10000);
+        }
+
+        function checkCollision(rect1, rect2) {
+            return rect1.left < rect2.right &&
+                   rect1.right > rect2.left &&
+                   rect1.top < rect2.bottom &&
+                   rect1.bottom > rect2.top;
+        }
+
+        function updateGame() {
+            // Update asteroids
+            asteroids.forEach((asteroid, index) => {
+                asteroid.position += asteroid.speed;
+                asteroid.element.style.top = asteroid.position + 'px';
+
+                if (asteroid.position > window.innerHeight) {
+                    asteroid.element.remove();
+                    asteroids.splice(index, 1);
+                    score++;
+                    scoreElement.textContent = `Score: ${score}`;
+                } else {
+                    const asteroidRect = asteroid.element.getBoundingClientRect();
+                    const shipRect = spaceship.getBoundingClientRect();
+                    
+                    if (checkCollision(asteroidRect, shipRect)) {
+                        if (!shieldActive) {
+                            endGame();
+                        }
+                    }
+                }
+            });
+
+            // Update power-ups
+            powerUps.forEach((powerUp, index) => {
+                powerUp.position += powerUp.speed;
+                powerUp.element.style.top = powerUp.position + 'px';
+
+                if (powerUp.position > window.innerHeight) {
+                    powerUp.element.remove();
+                    powerUps.splice(index, 1);
+                } else {
+                    const powerUpRect = powerUp.element.getBoundingClientRect();
+                    const shipRect = spaceship.getBoundingClientRect();
+                    
+                    if (checkCollision(powerUpRect, shipRect)) {
+                        activateShield();
+                        powerUp.element.remove();
+                        powerUps.splice(index, 1);
+                    }
+                }
+            });
+
+            // Create new asteroids and power-ups
+            if (Math.random() < 0.02) {
+                asteroids.push(createAsteroid());
+            }
+            if (Math.random() < 0.005) {
+                powerUps.push(createPowerUp());
+            }
+        }
+
+        function startGame() {
+            menu.style.display = 'none';
+            score = 0;
+            scoreElement.textContent = 'Score: 0';
+            gameRunning = true;
+            shipX = window.innerWidth / 2;
+            updateShipPosition();
+
+            gameLoop = setInterval(updateGame, 16);
+        }
+
+        function endGame() {
+            gameRunning = false;
+            clearInterval(gameLoop);
+            asteroids.forEach(asteroid => asteroid.element.remove());
+            powerUps.forEach(powerUp => powerUp.element.remove());
+            asteroids = [];
+            powerUps = [];
+            
+            menu.innerHTML = `
+                <h2>Game Over!</h2>
+                <p>Final Score: ${score}</p>
+                <div class="button" onclick="startGame()">Play Again</div>
+            `;
+            menu.style.display = 'block';
+        }
+
+        document.addEventListener('keydown', (event) => {
+            if (!gameRunning) return;
+            
+            switch(event.key) {
+                case 'a':
+                    shipX -= speed;
+                    spaceship.style.transform = 'translateX(-50%) rotate(-15deg)';
+                    break;
+                case 'd':
+                    shipX += speed;
+                    spaceship.style.transform = 'translateX(-50%) rotate(15deg)';
+                    break;
+            }
+            updateShipPosition();
+        });
+
+        document.addEventListener('keyup', (event) => {
+            if (event.key === 'a' || event.key === 'd') {
+                spaceship.style.transform = 'translateX(-50%) rotate(0deg)';
+            }
+        });
+    </script>
+</body>
+</html> 

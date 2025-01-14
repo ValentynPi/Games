@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Word Scramble</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #2c3e50;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        #game-container {
+            text-align: center;
+            padding: 20px;
+            max-width: 600px;
+            margin-top: 50px;
+        }
+
+        #scrambled-word {
+            font-size: 48px;
+            margin: 20px;
+            color: #3498db;
+            letter-spacing: 5px;
+        }
+
+        #guess-input {
+            font-size: 24px;
+            padding: 10px;
+            margin: 20px;
+            width: 300px;
+            border: none;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        #category {
+            font-size: 24px;
+            color: #e74c3c;
+            margin: 10px;
+        }
+
+        #timer {
+            font-size: 36px;
+            color: #f1c40f;
+            margin: 20px;
+        }
+
+        #score {
+            font-size: 24px;
+            margin: 20px;
+        }
+
+        .button {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+            border: none;
+            font-size: 16px;
+        }
+
+        .button:hover {
+            background: #2980b9;
+        }
+
+        #home-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
+
+        #hint-button {
+            background: #e67e22;
+        }
+
+        #hint-button:hover {
+            background: #d35400;
+        }
+
+        #hint {
+            font-size: 18px;
+            color: #95a5a6;
+            margin: 10px;
+            min-height: 27px;
+        }
+
+        .category-select {
+            margin: 20px;
+        }
+
+        .category-button {
+            background: #2ecc71;
+            margin: 5px;
+        }
+
+        .category-button.selected {
+            background: #27ae60;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        .shake {
+            animation: shake 0.5s;
+        }
+    </style>
+</head>
+<body>
+    <a href="game-portal.html" class="button" id="home-button">Home</a>
+    
+    <div id="game-container">
+        <div id="timer">60</div>
+        <div id="score">Score: 0</div>
+        <div id="category"></div>
+        <div id="scrambled-word"></div>
+        <input type="text" id="guess-input" placeholder="Type your guess here..." autocomplete="off">
+        <div id="hint"></div>
+        <button class="button" id="hint-button">Get Hint (-5 points)</button>
+        <div class="category-select">
+            <button class="button category-button selected" data-category="animals">Animals</button>
+            <button class="button category-button" data-category="countries">Countries</button>
+            <button class="button category-button" data-category="fruits">Fruits</button>
+        </div>
+        <button class="button" onclick="startGame()">Start Game</button>
+    </div>
+
+    <script>
+        const words = {
+            animals: ['ELEPHANT', 'GIRAFFE', 'PENGUIN', 'KANGAROO', 'DOLPHIN', 'TIGER', 'LION', 'ZEBRA', 'MONKEY', 'PANDA'],
+            countries: ['FRANCE', 'JAPAN', 'BRAZIL', 'CANADA', 'ITALY', 'SPAIN', 'EGYPT', 'INDIA', 'CHINA', 'MEXICO'],
+            fruits: ['APPLE', 'BANANA', 'ORANGE', 'MANGO', 'GRAPE', 'KIWI', 'LEMON', 'PEACH', 'CHERRY', 'PEAR']
+        };
+
+        let currentWord = '';
+        let currentCategory = 'animals';
+        let score = 0;
+        let timeLeft = 60;
+        let gameInterval;
+        let usedWords = new Set();
+
+        const gameContainer = document.getElementById('game-container');
+        const scrambledWordDisplay = document.getElementById('scrambled-word');
+        const guessInput = document.getElementById('guess-input');
+        const timerDisplay = document.getElementById('timer');
+        const scoreDisplay = document.getElementById('score');
+        const categoryDisplay = document.getElementById('category');
+        const hintDisplay = document.getElementById('hint');
+        const hintButton = document.getElementById('hint-button');
+
+        document.querySelectorAll('.category-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                document.querySelectorAll('.category-button').forEach(b => 
+                    b.classList.remove('selected'));
+                e.target.classList.add('selected');
+                currentCategory = e.target.dataset.category;
+            });
+        });
+
+        function scrambleWord(word) {
+            const arr = word.split('');
+            for (let i = arr.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [arr[i], arr[j]] = [arr[j], arr[i]];
+            }
+            return arr.join('');
+        }
+
+        function getNewWord() {
+            const availableWords = words[currentCategory].filter(word => !usedWords.has(word));
+            if (availableWords.length === 0) {
+                usedWords.clear(); // Reset if all words are used
+                return words[currentCategory][Math.floor(Math.random() * words[currentCategory].length)];
+            }
+            return availableWords[Math.floor(Math.random() * availableWords.length)];
+        }
+
+        function displayNewWord() {
+            currentWord = getNewWord();
+            usedWords.add(currentWord);
+            let scrambled = scrambleWord(currentWord);
+            while (scrambled === currentWord) {
+                scrambled = scrambleWord(currentWord);
+            }
+            scrambledWordDisplay.textContent = scrambled;
+            categoryDisplay.textContent = `Category: ${currentCategory.charAt(0).toUpperCase() + 
+                                         currentCategory.slice(1)}`;
+            hintDisplay.textContent = '';
+            guessInput.value = '';
+        }
+
+        function showHint() {
+            if (score >= 5) {
+                score -= 5;
+                scoreDisplay.textContent = `Score: ${score}`;
+                hintDisplay.textContent = `First letter: ${currentWord[0]}`;
+            } else {
+                hintDisplay.textContent = 'Not enough points for hint!';
+                setTimeout(() => hintDisplay.textContent = '', 2000);
+            }
+        }
+
+        function checkGuess() {
+            const guess = guessInput.value.toUpperCase();
+            if (guess === currentWord) {
+                score += 10;
+                scoreDisplay.textContent = `Score: ${score}`;
+                displayNewWord();
+            } else {
+                guessInput.classList.add('shake');
+                setTimeout(() => guessInput.classList.remove('shake'), 500);
+            }
+        }
+
+        function startGame() {
+            score = 0;
+            timeLeft = 60;
+            usedWords.clear();
+            scoreDisplay.textContent = `Score: ${score}`;
+            timerDisplay.textContent = timeLeft;
+            displayNewWord();
+            
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    endGame();
+                }
+            }, 1000);
+
+            guessInput.focus();
+        }
+
+        function endGame() {
+            clearInterval(gameInterval);
+            scrambledWordDisplay.textContent = 'Game Over!';
+            guessInput.disabled = true;
+            hintButton.disabled = true;
+            setTimeout(() => {
+                alert(`Game Over! Final Score: ${score}`);
+                guessInput.disabled = false;
+                hintButton.disabled = false;
+            }, 100);
+        }
+
+        guessInput.addEventListener('keyup', (event) => {
+            if (event.key === 'Enter') {
+                checkGuess();
+            }
+        });
+
+        hintButton.addEventListener('click', showHint);
+    </script>
+</body>
+</html> 

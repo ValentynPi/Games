@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Pong</title>
+    <style>
+        body {
+            margin: 0;
+            background: #2c3e50;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        #game-container {
+            position: relative;
+            width: 800px;
+            height: 500px;
+            background: #34495e;
+            border: 2px solid #3498db;
+        }
+
+        .paddle {
+            position: absolute;
+            width: 15px;
+            height: 100px;
+            background: #ecf0f1;
+            border-radius: 5px;
+        }
+
+        #player {
+            left: 50px;
+        }
+
+        #computer {
+            right: 50px;
+        }
+
+        #ball {
+            position: absolute;
+            width: 15px;
+            height: 15px;
+            background: #e74c3c;
+            border-radius: 50%;
+        }
+
+        .score {
+            position: absolute;
+            top: 20px;
+            color: white;
+            font-size: 48px;
+            font-family: 'Arial', sans-serif;
+        }
+
+        #player-score {
+            left: 30%;
+        }
+
+        #computer-score {
+            right: 30%;
+        }
+
+        #menu {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0, 0, 0, 0.9);
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: white;
+            z-index: 100;
+        }
+
+        .button {
+            display: inline-block;
+            background: #3498db;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 10px;
+            text-decoration: none;
+        }
+
+        #home-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+        }
+
+        .difficulty-button {
+            background: #2ecc71;
+            margin: 5px;
+            border: none;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .difficulty-button.selected {
+            background: #e74c3c;
+        }
+
+        #center-line {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 2px;
+            height: 100%;
+            background: rgba(255,255,255,0.2);
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <div id="center-line"></div>
+        <div class="paddle" id="player"></div>
+        <div class="paddle" id="computer"></div>
+        <div id="ball"></div>
+        <div class="score" id="player-score">0</div>
+        <div class="score" id="computer-score">0</div>
+    </div>
+
+    <a href="game-portal.html" class="button" id="home-button">Home</a>
+
+    <div id="menu">
+        <h2>Pong</h2>
+        <p>Use mouse or up/down arrows to move</p>
+        <div class="difficulty-select">
+            <button class="difficulty-button selected" data-speed="5">Easy</button>
+            <button class="difficulty-button" data-speed="7">Medium</button>
+            <button class="difficulty-button" data-speed="9">Hard</button>
+        </div>
+        <div class="button" onclick="startGame()">Start Game</div>
+    </div>
+
+    <script>
+        const gameContainer = document.getElementById('game-container');
+        const player = document.getElementById('player');
+        const computer = document.getElementById('computer');
+        const ball = document.getElementById('ball');
+        const playerScore = document.getElementById('player-score');
+        const computerScore = document.getElementById('computer-score');
+        const menu = document.getElementById('menu');
+
+        let ballX = 400;
+        let ballY = 250;
+        let ballSpeedX = 5;
+        let ballSpeedY = 5;
+        let playerY = 200;
+        let computerY = 200;
+        let pScore = 0;
+        let cScore = 0;
+        let gameInterval;
+        let difficulty = 5;
+
+        document.querySelectorAll('.difficulty-button').forEach(button => {
+            button.addEventListener('click', (e) => {
+                document.querySelectorAll('.difficulty-button').forEach(b => 
+                    b.classList.remove('selected'));
+                e.target.classList.add('selected');
+                difficulty = parseInt(e.target.dataset.speed);
+            });
+        });
+
+        function updatePositions() {
+            // Update ball position
+            ballX += ballSpeedX;
+            ballY += ballSpeedY;
+
+            // Ball collision with top and bottom
+            if (ballY <= 0 || ballY >= 485) {
+                ballSpeedY *= -1;
+            }
+
+            // Ball collision with paddles
+            if (ballX <= 65 && ballY >= playerY && ballY <= playerY + 100) {
+                ballSpeedX = Math.abs(ballSpeedX);
+                const relativeIntersectY = (playerY + 50) - ballY;
+                ballSpeedY = -relativeIntersectY / 10;
+            }
+
+            if (ballX >= 720 && ballY >= computerY && ballY <= computerY + 100) {
+                ballSpeedX = -Math.abs(ballSpeedX);
+                const relativeIntersectY = (computerY + 50) - ballY;
+                ballSpeedY = -relativeIntersectY / 10;
+            }
+
+            // Scoring
+            if (ballX <= 0) {
+                cScore++;
+                computerScore.textContent = cScore;
+                resetBall();
+            }
+            if (ballX >= 785) {
+                pScore++;
+                playerScore.textContent = pScore;
+                resetBall();
+            }
+
+            // Move computer paddle
+            const computerCenter = computerY + 50;
+            if (computerCenter < ballY - 35) {
+                computerY += difficulty;
+            }
+            if (computerCenter > ballY + 35) {
+                computerY -= difficulty;
+            }
+
+            // Update elements
+            ball.style.left = ballX + 'px';
+            ball.style.top = ballY + 'px';
+            player.style.top = playerY + 'px';
+            computer.style.top = computerY + 'px';
+        }
+
+        function resetBall() {
+            ballX = 400;
+            ballY = 250;
+            ballSpeedX = (Math.random() > 0.5 ? 5 : -5);
+            ballSpeedY = (Math.random() * 10 - 5);
+        }
+
+        function startGame() {
+            pScore = 0;
+            cScore = 0;
+            playerScore.textContent = '0';
+            computerScore.textContent = '0';
+            playerY = 200;
+            computerY = 200;
+            resetBall();
+            menu.style.display = 'none';
+            
+            if (gameInterval) clearInterval(gameInterval);
+            gameInterval = setInterval(updatePositions, 16);
+        }
+
+        gameContainer.addEventListener('mousemove', (e) => {
+            const rect = gameContainer.getBoundingClientRect();
+            const mouseY = e.clientY - rect.top - 50;
+            playerY = Math.max(0, Math.min(400, mouseY));
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowUp') {
+                playerY = Math.max(0, playerY - 20);
+            } else if (e.key === 'ArrowDown') {
+                playerY = Math.min(400, playerY + 20);
+            }
+        });
+    </script>
+</body>
+</html> 

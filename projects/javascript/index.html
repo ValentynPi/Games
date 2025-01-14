@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            margin: 0;
+            background-image: url('https://img.freepik.com/free-vector/city-skyline-silhouette-background_1048-15345.jpg');
+            background-size: cover;
+            cursor: crosshair;
+            overflow: hidden;
+        }
+
+        #score {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            font-size: 24px;
+            color: white;
+            font-family: Arial;
+        }
+
+        #man {
+            position: absolute;
+            left: 100px;
+            top: 100px;
+            z-index: 2;
+            transform-origin: center;
+        }
+
+        .head {
+            width: 30px;
+            height: 30px;
+            background-color: black;
+            border-radius: 50%;
+        }
+
+        .body {
+            width: 4px;
+            height: 50px;
+            background-color: black;
+            position: relative;
+            left: 13px;
+        }
+
+        .arms {
+            width: 60px;
+            height: 4px;
+            background-color: black;
+            position: relative;
+            top: -30px;
+            left: -15px;
+        }
+
+        .legs {
+            position: relative;
+            top: -4px;
+            left: 13px;
+        }
+
+        .leg-left, .leg-right {
+            width: 4px;
+            height: 40px;
+            background-color: black;
+            position: absolute;
+            transform-origin: top;
+        }
+
+        .leg-left {
+            transform: rotate(-30deg);
+        }
+
+        .leg-right {
+            transform: rotate(30deg);
+        }
+
+        .gun {
+            width: 20px;
+            height: 4px;
+            background-color: black;
+            position: absolute;
+            top: 35px;
+            left: 45px;
+        }
+
+        .bullet {
+            width: 5px;
+            height: 5px;
+            background-color: yellow;
+            position: absolute;
+            border-radius: 50%;
+        }
+
+        .monster {
+            width: 40px;
+            height: 40px;
+            background-color: red;
+            position: absolute;
+            border-radius: 8px;
+        }
+
+        .win-message {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            color: gold;
+            text-shadow: 2px 2px 4px black;
+            font-family: Arial;
+        }
+
+        .facing-left {
+            transform: scaleX(-1);
+        }
+    </style>
+</head>
+<body>
+    <div id="score">Score: 0</div>
+    <div id="win-message" class="win-message">You Win!</div>
+    <div id="man">
+        <div class="head"></div>
+        <div class="body"></div>
+        <div class="arms"></div>
+        <div class="legs">
+            <div class="leg-left"></div>
+            <div class="leg-right"></div>
+        </div>
+        <div class="gun"></div>
+    </div>
+    <script>
+        const man = document.getElementById('man');
+        const scoreElement = document.getElementById('score');
+        const winMessage = document.getElementById('win-message');
+        let posY = 100;
+        let posX = 100;
+        const speed = 5;
+        let score = 0;
+        let isFacingLeft = false;
+
+        // Monster spawning
+        function spawnMonster() {
+            const monster = document.createElement('div');
+            monster.className = 'monster';
+            monster.style.left = `${Math.random() * (window.innerWidth - 40)}px`;
+            monster.style.top = `${Math.random() * (window.innerHeight - 40)}px`;
+            document.body.appendChild(monster);
+        }
+
+        // Initial monster
+        spawnMonster();
+
+        // Shooting mechanics
+        document.addEventListener('click', (event) => {
+            const bullet = document.createElement('div');
+            bullet.className = 'bullet';
+            
+            const manRect = man.getBoundingClientRect();
+            const startX = manRect.left + (isFacingLeft ? -25 : 45);
+            const startY = manRect.top + 35;
+            
+            bullet.style.left = startX + 'px';
+            bullet.style.top = startY + 'px';
+            document.body.appendChild(bullet);
+
+            // Make bullet go in the facing direction
+            const velocity = 10;
+            const velocityX = isFacingLeft ? -velocity : velocity;
+            const velocityY = 0;
+
+            // Bullet movement
+            const bulletInterval = setInterval(() => {
+                const currentX = parseFloat(bullet.style.left);
+                const currentY = parseFloat(bullet.style.top);
+                bullet.style.left = (currentX + velocityX) + 'px';
+                bullet.style.top = (currentY + velocityY) + 'px';
+
+                // Check collision with monsters
+                const monsters = document.querySelectorAll('.monster');
+                monsters.forEach(monster => {
+                    const bulletRect = bullet.getBoundingClientRect();
+                    const monsterRect = monster.getBoundingClientRect();
+
+                    if (bulletRect.left < monsterRect.right &&
+                        bulletRect.right > monsterRect.left &&
+                        bulletRect.top < monsterRect.bottom &&
+                        bulletRect.bottom > monsterRect.top) {
+                        
+                        // Monster hit
+                        monster.remove();
+                        bullet.remove();
+                        clearInterval(bulletInterval);
+                        score++;
+                        scoreElement.textContent = `Score: ${score}`;
+
+                        // Check win condition
+                        if (score >= 10) {
+                            winMessage.style.display = 'block';
+                        } else {
+                            spawnMonster();
+                        }
+                    }
+                });
+
+                // Remove bullet if it goes off screen
+                if (currentX < 0 || currentX > window.innerWidth ||
+                    currentY < 0 || currentY > window.innerHeight) {
+                    bullet.remove();
+                    clearInterval(bulletInterval);
+                }
+            }, 16);
+        });
+
+        // Updated movement controls
+        document.addEventListener('keydown', (event) => {
+            switch(event.key) {
+                case 'w':
+                    posY -= speed;
+                    break;
+                case 's':
+                    posY += speed;
+                    break;
+                case 'a':
+                    posX -= speed;
+                    if (!isFacingLeft) {
+                        man.classList.add('facing-left');
+                        isFacingLeft = true;
+                    }
+                    break;
+                case 'd':
+                    posX += speed;
+                    if (isFacingLeft) {
+                        man.classList.remove('facing-left');
+                        isFacingLeft = false;
+                    }
+                    break;
+            }
+            man.style.top = posY + 'px';
+            man.style.left = posX + 'px';
+        });
+    </script>
+</body>
+</html>
+
