@@ -5,95 +5,148 @@ import { Menu } from '../../components/Menu';
 import { Button } from '../../components/Button';
 import { Paddle, Ball, ScoreDisplay, CenterLine, DifficultyButton } from './styles';
 
+const GAME_WIDTH = 800;
+const GAME_HEIGHT = 500;
+const PADDLE_HEIGHT = 100;
+const BALL_SIZE = 15;
+const BALL_SPEED = 7;
+
 const Pong = () => {
-  const [ballPos, setBallPos] = useState({ x: 400, y: 250 });
-  const [ballSpeed, setBallSpeed] = useState({ x: 5, y: 5 });
-  const [playerY, setPlayerY] = useState(200);
-  const [computerY, setComputerY] = useState(200);
+  const [ballPos, setBallPos] = useState({ x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 });
+  const [playerY, setPlayerY] = useState(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
+  const [computerY, setComputerY] = useState(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
   const [playerScore, setPlayerScore] = useState(0);
   const [computerScore, setComputerScore] = useState(0);
   const [gameRunning, setGameRunning] = useState(false);
   const [showMenu, setShowMenu] = useState(true);
   const [difficulty, setDifficulty] = useState(5);
+  
+  const ballSpeedRef = useRef({ x: BALL_SPEED, y: 0 });
   const gameLoopRef = useRef(null);
   const containerRef = useRef(null);
   const navigate = useNavigate();
 
-  const updatePositions = () => {
-    // Update ball position
-    setBallPos(prev => ({
-      x: prev.x + ballSpeed.x,
-      y: prev.y + ballSpeed.y
-    }));
-
-    // Ball collision with top and bottom
-    if (ballPos.y <= 0 || ballPos.y >= 485) {
-      setBallSpeed(prev => ({ ...prev, y: -prev.y }));
-    }
-
-    // Ball collision with paddles
-    if (ballPos.x <= 65 && ballPos.y >= playerY && ballPos.y <= playerY + 100) {
-      setBallSpeed(prev => ({
-        x: Math.abs(prev.x),
-        y: ((playerY + 50) - ballPos.y) / -10
-      }));
-    }
-
-    if (ballPos.x >= 720 && ballPos.y >= computerY && ballPos.y <= computerY + 100) {
-      setBallSpeed(prev => ({
-        x: -Math.abs(prev.x),
-        y: ((computerY + 50) - ballPos.y) / -10
-      }));
-    }
-
-    // Scoring
-    if (ballPos.x <= 0) {
-      setComputerScore(prev => prev + 1);
-      resetBall();
-    }
-    if (ballPos.x >= 785) {
-      setPlayerScore(prev => prev + 1);
-      resetBall();
-    }
-
-    // Move computer paddle
-    const computerCenter = computerY + 50;
-    if (computerCenter < ballPos.y - 35) {
-      setComputerY(prev => Math.min(prev + difficulty, 400));
-    }
-    if (computerCenter > ballPos.y + 35) {
-      setComputerY(prev => Math.max(prev - difficulty, 0));
-    }
+  const resetBall = () => {
+    setBallPos({ x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 });
+    const direction = Math.random() > 0.5 ? 1 : -1;
+    const angle = (Math.random() - 0.5) * 0.5;
+    ballSpeedRef.current = {
+      x: BALL_SPEED * direction,
+      y: BALL_SPEED * angle
+    };
   };
 
-  const resetBall = () => {
-    setBallPos({ x: 400, y: 250 });
-    setBallSpeed({
-      x: Math.random() > 0.5 ? 5 : -5,
-      y: Math.random() * 10 - 5
+  const updateGame = () => {
+    if (!gameRunning) return;
+
+    setBallPos(prev => {
+      const newPos = {
+        x: prev.x + ballSpeedRef.current.x,
+        y: prev.y + ballSpeedRef.current.y
+      };
+
+      // Ball collision with top and bottom walls
+      if (newPos.y <= 0 || newPos.y >= GAME_HEIGHT - BALL_SIZE) {
+        ballSpeedRef.current.y = -ballSpeedRef.current.y;
+      }
+
+      // Ball collision with player paddle
+      if (newPos.x <= 65 && 
+          newPos.y + BALL_SIZE >= playerY && 
+          newPos.y <= playerY + PADDLE_HEIGHT) {
+        const hitPos = (newPos.y - playerY) / PADDLE_HEIGHT;
+        const angle = (hitPos - 0.5) * Math.PI / 3;
+        
+        ballSpeedRef.current = {
+          x: BALL_SPEED,
+          y: BALL_SPEED * Math.sin(angle)
+        };
+        newPos.x = 66;
+      }
+
+      // Ball collision with computer paddle
+      if (newPos.x >= GAME_WIDTH - 80 && 
+          newPos.y + BALL_SIZE >= computerY && 
+          newPos.y <= computerY + PADDLE_HEIGHT) {
+        const hitPos = (newPos.y - computerY) / PADDLE_HEIGHT;
+        const angle = (hitPos - 0.5) * Math.PI / 3;
+
+        ballSpeedRef.current = {
+          x: -BALL_SPEED,
+          y: BALL_SPEED * Math.sin(angle)
+        };
+        newPos.x = GAME_WIDTH - 81;
+      }
+
+      // Scoring
+      if (newPos.x <= 0) {
+        setComputerScore(s => s + 1);
+        resetBall();
+        return { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 };
+      }
+      if (newPos.x >= GAME_WIDTH) {
+        setPlayerScore(s => s + 1);
+        resetBall();
+        return { x: GAME_WIDTH / 2, y: GAME_HEIGHT / 2 };
+      }
+
+      return newPos;
+    });
+
+    // Update computer paddle with smoother movement
+    setComputerY(prev => {
+      const targetY = ballPos.y - (PADDLE_HEIGHT / 2);
+      const diff = targetY - prev;
+      const movement = Math.min(Math.abs(diff), difficulty);
+      return Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, 
+        prev + (diff > 0 ? movement : -movement)
+      ));
     });
   };
+
+  useEffect(() => {
+    let frameId;
+    
+    const gameLoop = () => {
+      if (gameRunning) {
+        updateGame();
+        frameId = requestAnimationFrame(gameLoop);
+      }
+    };
+
+    if (gameRunning) {
+      frameId = requestAnimationFrame(gameLoop);
+    }
+
+    return () => {
+      if (frameId) {
+        cancelAnimationFrame(frameId);
+      }
+    };
+  }, [gameRunning]);
 
   const startGame = () => {
     setPlayerScore(0);
     setComputerScore(0);
-    setPlayerY(200);
-    setComputerY(200);
+    setPlayerY(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
+    setComputerY(GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2);
     resetBall();
-    setShowMenu(false);
     setGameRunning(true);
-    
-    if (gameLoopRef.current) clearInterval(gameLoopRef.current);
-    gameLoopRef.current = setInterval(updatePositions, 16);
+    setShowMenu(false);
+  };
+
+  const endGame = () => {
+    setGameRunning(false);
+    setShowMenu(true);
   };
 
   useEffect(() => {
     const handleMouseMove = (e) => {
-      if (containerRef.current && gameRunning) {
-        const rect = containerRef.current.getBoundingClientRect();
-        const mouseY = e.clientY - rect.top - 50;
-        setPlayerY(Math.max(0, Math.min(400, mouseY)));
-      }
+      if (!gameRunning || !containerRef.current) return;
+      
+      const rect = containerRef.current.getBoundingClientRect();
+      const mouseY = e.clientY - rect.top;
+      setPlayerY(Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, mouseY)));
     };
 
     const handleKeyPress = (e) => {
@@ -102,7 +155,7 @@ const Pong = () => {
       if (e.key === 'ArrowUp') {
         setPlayerY(prev => Math.max(0, prev - 20));
       } else if (e.key === 'ArrowDown') {
-        setPlayerY(prev => Math.min(400, prev + 20));
+        setPlayerY(prev => Math.min(GAME_HEIGHT - PADDLE_HEIGHT, prev + 20));
       }
     };
 
@@ -112,7 +165,6 @@ const Pong = () => {
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('keydown', handleKeyPress);
-      if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     };
   }, [gameRunning]);
 

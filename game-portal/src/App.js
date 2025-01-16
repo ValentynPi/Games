@@ -11,12 +11,6 @@ import Snake from './games/Snake';
 import Pong from './games/Pong';
 import ColorMatch from './games/ColorMatch';
 import MemoryCards from './games/MemoryCards';
-//import WordScramble from './games/WordScramble';
-//import BrickBreaker from './games/BrickBreaker';
-//import MathChallenge from './games/MathChallenge';
-//import Tetris from './games/Tetris';
-//import PacMan from './games/PacMan';
-//import SpaceDodge from './games/SpaceDodge';
 
 function App() {
   return (
@@ -30,12 +24,6 @@ function App() {
           <Route path="/pong" element={<Pong />} />
           <Route path="/color-match" element={<ColorMatch />} />
           <Route path="/memory-cards" element={<MemoryCards />} />
-          {/* <Route path="/word-scramble" element={<WordScramble />} />
-          <Route path="/brick-breaker" element={<BrickBreaker />} />
-          <Route path="/math-challenge" element={<MathChallenge />} />
-          <Route path="/tetris" element={<Tetris />} />
-          <Route path="/pacman" element={<PacMan />} />
-          <Route path="/space-dodge" element={<SpaceDodge />} /> */}
         </Routes>
       </Router>
     </ThemeProvider>

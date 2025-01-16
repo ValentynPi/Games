@@ -9,11 +9,11 @@ const Snake = () => {
   const [snake, setSnake] = useState([]);
   const [food, setFood] = useState(null);
   const [direction, setDirection] = useState('right');
-  const [nextDirection, setNextDirection] = useState('right');
   const [score, setScore] = useState(0);
   const [gameRunning, setGameRunning] = useState(false);
   const [showMenu, setShowMenu] = useState(true);
   const [gameSpeed, setGameSpeed] = useState(150);
+  const directionRef = useRef('right');
   const gameLoopRef = useRef(null);
   const navigate = useNavigate();
 
@@ -33,68 +33,70 @@ const Snake = () => {
     setFood({ x, y });
   };
 
-  const updateSnake = () => {
-    if (!gameRunning) return;
+  const moveSnake = () => {
+    setSnake(prevSnake => {
+      if (!gameRunning) return prevSnake;
 
-    setDirection(nextDirection);
-    const head = snake[0];
-    let newX = head.x;
-    let newY = head.y;
+      const head = prevSnake[0];
+      let newX = head.x;
+      let newY = head.y;
 
-    switch(direction) {
-      case 'up': newY--; break;
-      case 'down': newY++; break;
-      case 'left': newX--; break;
-      case 'right': newX++; break;
-      default: break;
-    }
+      switch(directionRef.current) {
+        case 'up': newY--; break;
+        case 'down': newY++; break;
+        case 'left': newX--; break;
+        case 'right': newX++; break;
+        default: break;
+      }
 
-    // Check collision with walls
-    if (newX < 0 || newX >= 30 || newY < 0 || newY >= 30) {
-      endGame();
-      return;
-    }
+      // Check collision with walls
+      if (newX < 0 || newX >= 30 || newY < 0 || newY >= 30) {
+        endGame();
+        return prevSnake;
+      }
 
-    // Check collision with self
-    if (snake.some(segment => segment.x === newX && segment.y === newY)) {
-      endGame();
-      return;
-    }
+      // Check collision with self
+      if (prevSnake.some(segment => segment.x === newX && segment.y === newY)) {
+        endGame();
+        return prevSnake;
+      }
 
-    // Create new head
-    const newSnake = [
-      createSnakeSegment(newX, newY, true),
-      ...snake.slice(0, -1).map(segment => ({
-        ...segment,
-        isHead: false
-      }))
-    ];
+      const newSnake = [
+        createSnakeSegment(newX, newY, true),
+        ...prevSnake.slice(0, -1).map(segment => ({
+          ...segment,
+          isHead: false
+        }))
+      ];
 
-    // Check food collision
-    if (food && newX === food.x && newY === food.y) {
-      setSnake([...newSnake, snake[snake.length - 1]]);
-      setScore(prev => prev + 10);
-      createFood();
-    } else {
-      setSnake(newSnake);
-    }
+      // Check if food is eaten
+      if (food && newX === food.x && newY === food.y) {
+        newSnake.push(prevSnake[prevSnake.length - 1]);
+        setScore(s => s + 1);
+        createFood();
+      }
+
+      return newSnake;
+    });
   };
 
   const startGame = () => {
-    setSnake([
-      createSnakeSegment(7, 15, true),
-      createSnakeSegment(6, 15),
-      createSnakeSegment(5, 15)
-    ]);
+    const initialSnake = [
+      createSnakeSegment(4, 2, true),
+      createSnakeSegment(3, 2),
+      createSnakeSegment(2, 2)
+    ];
+    
+    setSnake(initialSnake);
     setDirection('right');
-    setNextDirection('right');
+    directionRef.current = 'right';
     setScore(0);
     setShowMenu(false);
     setGameRunning(true);
     createFood();
 
     if (gameLoopRef.current) clearInterval(gameLoopRef.current);
-    gameLoopRef.current = setInterval(updateSnake, gameSpeed);
+    gameLoopRef.current = setInterval(moveSnake, gameSpeed);
   };
 
   const endGame = () => {
@@ -105,18 +107,32 @@ const Snake = () => {
 
   useEffect(() => {
     const handleKeyPress = (e) => {
+      if (!gameRunning) return;
+
       switch(e.key) {
         case 'ArrowUp':
-          if (direction !== 'down') setNextDirection('up');
+          if (directionRef.current !== 'down') {
+            directionRef.current = 'up';
+            setDirection('up');
+          }
           break;
         case 'ArrowDown':
-          if (direction !== 'up') setNextDirection('down');
+          if (directionRef.current !== 'up') {
+            directionRef.current = 'down';
+            setDirection('down');
+          }
           break;
         case 'ArrowLeft':
-          if (direction !== 'right') setNextDirection('left');
+          if (directionRef.current !== 'right') {
+            directionRef.current = 'left';
+            setDirection('left');
+          }
           break;
         case 'ArrowRight':
-          if (direction !== 'left') setNextDirection('right');
+          if (directionRef.current !== 'left') {
+            directionRef.current = 'right';
+            setDirection('right');
+          }
           break;
         default:
           break;
@@ -128,7 +144,7 @@ const Snake = () => {
       document.removeEventListener('keydown', handleKeyPress);
       if (gameLoopRef.current) clearInterval(gameLoopRef.current);
     };
-  }, [direction]);
+  }, [gameRunning]);
 
   return (
     <>
