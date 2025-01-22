@@ -1,33 +1,47 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ThemeProvider } from 'styled-components';
-import GlobalStyle from './styles/GlobalStyle';
-import theme from './styles/theme';
-
-// Pages
+import { createGlobalStyle } from 'styled-components';
 import GamePortal from './pages/GamePortal';
-import FlappyBird from './games/FlappyBird';
+import { Pong } from './games/Pong';
 import Snake from './games/Snake';
-import Pong from './games/Pong';
-import ColorMatch from './games/ColorMatch';
-import MemoryCards from './games/MemoryCards';
+import Tetris from './games/Tetris';
+import DoodleJump from './games/DoodleJump';
+import UnblockMe from './games/UnblockMe';
+import { theme } from './theme';
+import { CoinProvider } from './contexts/CoinContext';
 
-function App() {
+const GlobalStyle = createGlobalStyle`
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: Arial, sans-serif;
+    background-color: #1a1a1a;
+  }
+`;
+
+const App = () => {
   return (
     <ThemeProvider theme={theme}>
-      <GlobalStyle />
-      <Router>
-        <Routes>
-          <Route path="/" element={<GamePortal />} />
-          <Route path="/flappy-bird" element={<FlappyBird />} />
-          <Route path="/snake" element={<Snake />} />
-          <Route path="/pong" element={<Pong />} />
-          <Route path="/color-match" element={<ColorMatch />} />
-          <Route path="/memory-cards" element={<MemoryCards />} />
-        </Routes>
-      </Router>
+      <CoinProvider>
+        <GlobalStyle />
+        <Router>
+          <Routes>
+            <Route path="/" element={<GamePortal />} />
+            <Route path="/game/pong" element={<Pong />} />
+            <Route path="/game/snake" element={<Snake />} />
+            <Route path="/game/tetris" element={<Tetris />} />
+            <Route path="/game/doodlejump" element={<DoodleJump />} />
+            <Route path="/game/unblockme" element={<UnblockMe />} />
+          </Routes>
+        </Router>
+      </CoinProvider>
     </ThemeProvider>
   );
-}
+};
 
 export default App; 

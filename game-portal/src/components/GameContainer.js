@@ -2,9 +2,9 @@ import styled from 'styled-components';
 
 export const GameContainer = styled.div`
   position: relative;
-  width: ${props => props.width || props.theme.sizes.gameWidth};
-  height: ${props => props.height || props.theme.sizes.gameHeight};
-  background: ${props => props.background || props.theme.colors.darker};
-  border: 2px solid ${props => props.theme.colors.primary};
   overflow: hidden;
+  background-color: #000;
+  border: 2px solid #333;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  border-radius: 4px;
 `; 

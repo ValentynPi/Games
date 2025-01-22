@@ -1,0 +1,357 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { GameContainer } from '../../components/GameContainer';
+import { Menu } from '../../components/Menu';
+import { Button } from '../../components/Button';
+import { 
+  TetrisBoard, 
+  Cell, 
+  StatsPanel, 
+  NextPieceDisplay, 
+  Score, 
+  Level, 
+  Lines 
+} from './styles';
+
+// Tetromino shapes
+const TETROMINOES = {
+  I: {
+    shape: [[1, 1, 1, 1]],
+    color: '#00f0f0',
+  },
+  J: {
+    shape: [
+      [1, 0, 0],
+      [1, 1, 1],
+    ],
+    color: '#0000f0',
+  },
+  L: {
+    shape: [
+      [0, 0, 1],
+      [1, 1, 1],
+    ],
+    color: '#f0a000',
+  },
+  O: {
+    shape: [
+      [1, 1],
+      [1, 1],
+    ],
+    color: '#f0f000',
+  },
+  S: {
+    shape: [
+      [0, 1, 1],
+      [1, 1, 0],
+    ],
+    color: '#00f000',
+  },
+  T: {
+    shape: [
+      [0, 1, 0],
+      [1, 1, 1],
+    ],
+    color: '#a000f0',
+  },
+  Z: {
+    shape: [
+      [1, 1, 0],
+      [0, 1, 1],
+    ],
+    color: '#f00000',
+  },
+};
+
+const BOARD_WIDTH = 10;
+const BOARD_HEIGHT = 20;
+const INITIAL_DROP_TIME = 1000;
+
+const createEmptyBoard = () => 
+  Array.from({ length: BOARD_HEIGHT }, () => 
+    Array(BOARD_WIDTH).fill(0)
+  );
+
+const Tetris = () => {
+  const [board, setBoard] = useState(createEmptyBoard());
+  const [currentPiece, setCurrentPiece] = useState(null);
+  const [nextPiece, setNextPiece] = useState(null);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [score, setScore] = useState(0);
+  const [lines, setLines] = useState(0);
+  const [level, setLevel] = useState(1);
+  const [dropTime, setDropTime] = useState(INITIAL_DROP_TIME);
+  const [gameOver, setGameOver] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
+  const [gameRunning, setGameRunning] = useState(false);
+  const [showMenu, setShowMenu] = useState(true);
+  
+  const navigate = useNavigate();
+
+  // Generate random tetromino
+  const generateTetromino = useCallback(() => {
+    const pieces = Object.keys(TETROMINOES);
+    const randomPiece = pieces[Math.floor(Math.random() * pieces.length)];
+    return {
+      shape: TETROMINOES[randomPiece].shape,
+      color: TETROMINOES[randomPiece].color,
+      name: randomPiece,
+    };
+  }, []);
+
+  // Check collisions
+  const checkCollision = useCallback((piece, pos) => {
+    for (let y = 0; y < piece.shape.length; y++) {
+      for (let x = 0; x < piece.shape[y].length; x++) {
+        if (piece.shape[y][x]) {
+          const newX = pos.x + x;
+          const newY = pos.y + y;
+          
+          if (
+            newX < 0 || 
+            newX >= BOARD_WIDTH ||
+            newY >= BOARD_HEIGHT ||
+            (newY >= 0 && board[newY][newX])
+          ) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }, [board]);
+
+  // Rotate piece
+  const rotatePiece = useCallback((piece) => {
+    const rotated = piece.shape[0].map((_, i) =>
+      piece.shape.map(row => row[i]).reverse()
+    );
+    return { ...piece, shape: rotated };
+  }, []);
+
+  // Clear completed lines
+  const clearLines = useCallback(() => {
+    let linesCleared = 0;
+    const newBoard = board.reduce((acc, row) => {
+      if (row.every(cell => cell)) {
+        linesCleared++;
+        acc.unshift(Array(BOARD_WIDTH).fill(0));
+      } else {
+        acc.push(row);
+      }
+      return acc;
+    }, []);
+
+    if (linesCleared > 0) {
+      setScore(prev => prev + (linesCleared * 100 * level));
+      setLines(prev => {
+        const newLines = prev + linesCleared;
+        if (Math.floor(newLines / 10) > Math.floor(prev / 10)) {
+          setLevel(l => l + 1);
+          setDropTime(time => Math.max(time * 0.8, 100));
+        }
+        return newLines;
+      });
+      setBoard(newBoard);
+    }
+  }, [board, level]);
+
+  // Move piece
+  const movePiece = useCallback((dir) => {
+    if (!currentPiece || isPaused) return;
+
+    const newPos = { ...position, x: position.x + dir };
+    if (!checkCollision(currentPiece, newPos)) {
+      setPosition(newPos);
+    }
+  }, [currentPiece, position, checkCollision, isPaused]);
+
+  // Drop piece
+  const dropPiece = useCallback(() => {
+    if (!currentPiece || isPaused) return;
+
+    const newPos = { ...position, y: position.y + 1 };
+    if (!checkCollision(currentPiece, newPos)) {
+      setPosition(newPos);
+    } else {
+      // Lock piece
+      const newBoard = [...board];
+      currentPiece.shape.forEach((row, y) => {
+        row.forEach((cell, x) => {
+          if (cell) {
+            const boardY = position.y + y;
+            if (boardY < 0) {
+              setGameOver(true);
+              setGameRunning(false);
+              setShowMenu(true);
+              return;
+            }
+            newBoard[boardY][position.x + x] = currentPiece.color;
+          }
+        });
+      });
+
+      setBoard(newBoard);
+      clearLines();
+
+      // Set next piece
+      setCurrentPiece(nextPiece);
+      setNextPiece(generateTetromino());
+      setPosition({ x: Math.floor(BOARD_WIDTH / 2) - 1, y: 0 });
+    }
+  }, [currentPiece, position, board, checkCollision, clearLines, generateTetromino, nextPiece, isPaused]);
+
+  // Handle key presses
+  useEffect(() => {
+    const handleKeyPress = (e) => {
+      if (!gameRunning || isPaused) return;
+
+      switch (e.key) {
+        case 'ArrowLeft':
+          movePiece(-1);
+          break;
+        case 'ArrowRight':
+          movePiece(1);
+          break;
+        case 'ArrowDown':
+          dropPiece();
+          break;
+        case 'ArrowUp':
+          const rotated = rotatePiece(currentPiece);
+          if (!checkCollision(rotated, position)) {
+            setCurrentPiece(rotated);
+          }
+          break;
+        case ' ':
+          while (!checkCollision(currentPiece, { ...position, y: position.y + 1 })) {
+            setPosition(pos => ({ ...pos, y: pos.y + 1 }));
+          }
+          dropPiece();
+          break;
+        case 'Escape':
+          setIsPaused(prev => !prev);
+          break;
+        default:
+          break;
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [gameRunning, currentPiece, position, movePiece, dropPiece, rotatePiece, checkCollision, isPaused]);
+
+  // Drop timer
+  useEffect(() => {
+    let dropTimer;
+    if (gameRunning && !isPaused) {
+      dropTimer = setInterval(dropPiece, dropTime);
+    }
+    return () => clearInterval(dropTimer);
+  }, [dropPiece, dropTime, gameRunning, isPaused]);
+
+  // Start game
+  const startGame = () => {
+    setBoard(createEmptyBoard());
+    setCurrentPiece(generateTetromino());
+    setNextPiece(generateTetromino());
+    setPosition({ x: Math.floor(BOARD_WIDTH / 2) - 1, y: 0 });
+    setScore(0);
+    setLines(0);
+    setLevel(1);
+    setDropTime(INITIAL_DROP_TIME);
+    setGameOver(false);
+    setIsPaused(false);
+    setGameRunning(true);
+    setShowMenu(false);
+  };
+
+  return (
+    <div style={{ 
+      width: '100%', 
+      height: '100vh', 
+      display: 'flex', 
+      justifyContent: 'center', 
+      alignItems: 'center',
+      backgroundColor: '#1a1a1a'
+    }}>
+      <GameContainer>
+        <div style={{ display: 'flex', gap: '20px' }}>
+          <TetrisBoard>
+            {board.map((row, y) => 
+              row.map((cell, x) => (
+                <Cell
+                  key={`${y}-${x}`}
+                  $color={cell || (
+                    currentPiece &&
+                    y >= position.y &&
+                    y < position.y + currentPiece.shape.length &&
+                    x >= position.x &&
+                    x < position.x + currentPiece.shape[0].length &&
+                    currentPiece.shape[y - position.y][x - position.x]
+                      ? currentPiece.color
+                      : undefined
+                  )}
+                />
+              ))
+            )}
+          </TetrisBoard>
+
+          <StatsPanel>
+            <NextPieceDisplay>
+              <h3>Next Piece</h3>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: `repeat(4, 20px)`,
+                gap: '1px',
+                padding: '10px'
+              }}>
+                {nextPiece && nextPiece.shape.map((row, y) =>
+                  row.map((cell, x) => (
+                    <Cell
+                      key={`next-${y}-${x}`}
+                      $color={cell ? nextPiece.color : undefined}
+                    />
+                  ))
+                )}
+              </div>
+            </NextPieceDisplay>
+            <Score>Score: {score}</Score>
+            <Level>Level: {level}</Level>
+            <Lines>Lines: {lines}</Lines>
+          </StatsPanel>
+        </div>
+      </GameContainer>
+
+      {showMenu && (
+        <Menu>
+          <h2>Tetris</h2>
+          <p>Use arrow keys to move and rotate pieces</p>
+          <p>Space to drop instantly</p>
+          <p>ESC to pause</p>
+          {gameOver && (
+            <>
+              <p>Game Over!</p>
+              <p>Score: {score}</p>
+              <p>Level: {level}</p>
+              <p>Lines: {lines}</p>
+            </>
+          )}
+          <Button onClick={startGame}>
+            {gameOver ? 'Play Again' : 'Start Game'}
+          </Button>
+          <Button onClick={() => navigate('/')}>Home</Button>
+        </Menu>
+      )}
+
+      {isPaused && (
+        <Menu>
+          <h2>Paused</h2>
+          <Button onClick={() => setIsPaused(false)}>Resume</Button>
+          <Button onClick={() => navigate('/')}>Quit</Button>
+        </Menu>
+      )}
+    </div>
+  );
+};
+
+export default Tetris; 

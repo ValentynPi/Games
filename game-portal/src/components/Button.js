@@ -1,18 +1,15 @@
 import styled from 'styled-components';
-import { Link } from 'react-router-dom';
 
-export const Button = styled(Link)`
-  display: inline-block;
+export const Button = styled.button`
   background: ${props => props.theme.colors.primary};
   color: white;
-  padding: 10px 20px;
-  border-radius: 5px;
-  cursor: pointer;
-  margin: 10px;
-  text-decoration: none;
+  padding: 0.8rem 1.5rem;
   border: none;
-  font-size: 16px;
-
+  border-radius: 5px;
+  margin: 0.5rem;
+  cursor: pointer;
+  font-size: 1rem;
+  
   &:hover {
     background: ${props => props.theme.colors.secondary};
   }
