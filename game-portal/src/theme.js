@@ -1,27 +1,29 @@
 export const theme = {
   colors: {
-    primary: '#007bff',
-    secondary: '#6c757d',
-    success: '#28a745',
-    danger: '#dc3545',
-    warning: '#ffc107',
-    info: '#17a2b8',
-    light: '#f8f9fa',
-    dark: '#343a40',
-    white: '#ffffff',
-    black: '#000000'
+    primary: '#3498db',
+    secondary: '#2ecc71',
+    background: '#1a1a1a',
+    surface: '#2c3e50',
+    text: '#ffffff',
+    textSecondary: '#95a5a6',
+    accent: '#f1c40f',
+    error: '#e74c3c'
   },
-  fonts: {
-    primary: "'Arial', sans-serif"
+  shadows: {
+    small: '0 2px 4px rgba(0, 0, 0, 0.1)',
+    medium: '0 4px 8px rgba(0, 0, 0, 0.2)',
+    large: '0 8px 16px rgba(0, 0, 0, 0.3)'
   },
-  sizes: {
-    small: '0.875rem',
-    medium: '1rem',
-    large: '1.25rem'
+  borderRadius: {
+    small: '5px',
+    medium: '10px',
+    large: '15px',
+    round: '50%'
   },
   spacing: {
-    small: '0.5rem',
-    medium: '1rem',
-    large: '1.5rem'
+    small: '8px',
+    medium: '16px',
+    large: '24px',
+    xlarge: '32px'
   }
 }; 

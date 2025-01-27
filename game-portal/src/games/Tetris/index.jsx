@@ -1,5 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
+import { useCoins } from '../../contexts/CoinContext';
+import { useInventory } from '../../contexts/InventoryContext';
+import { CoinDisplay } from '../../components/CoinDisplay';
 import { GameContainer } from '../../components/GameContainer';
 import { Menu } from '../../components/Menu';
 import { Button } from '../../components/Button';
@@ -63,17 +67,42 @@ const TETROMINOES = {
   },
 };
 
+const BLOCK_SIZE = 30;
 const BOARD_WIDTH = 10;
 const BOARD_HEIGHT = 20;
 const INITIAL_DROP_TIME = 1000;
 
-const createEmptyBoard = () => 
-  Array.from({ length: BOARD_HEIGHT }, () => 
-    Array(BOARD_WIDTH).fill(0)
-  );
+const GameContainerStyled = styled.div`
+  width: ${BLOCK_SIZE * BOARD_WIDTH}px;
+  height: ${BLOCK_SIZE * BOARD_HEIGHT}px;
+  border: 2px solid #2d8a4e;
+  position: relative;
+  background-color: #1a1a1a;
+`;
+
+const Block = styled.div`
+  width: ${BLOCK_SIZE}px;
+  height: ${BLOCK_SIZE}px;
+  position: absolute;
+  transition: all 0.1s linear;
+  ${({ skin }) => {
+    if (skin?.block) {
+      return `
+        background: ${skin.block.background || 'linear-gradient(135deg, #64B5F6, #1976D2)'};
+        box-shadow: ${skin.block.boxShadow || '0 0 5px rgba(25, 118, 210, 0.5)'};
+        border: ${skin.block.border || '1px solid #1565C0'};
+      `;
+    }
+    return `
+      background: linear-gradient(135deg, #64B5F6, #1976D2);
+      box-shadow: 0 0 5px rgba(25, 118, 210, 0.5);
+      border: 1px solid #1565C0;
+    `;
+  }}
+`;
 
 const Tetris = () => {
-  const [board, setBoard] = useState(createEmptyBoard());
+  const [board, setBoard] = useState(Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0)));
   const [currentPiece, setCurrentPiece] = useState(null);
   const [nextPiece, setNextPiece] = useState(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
@@ -87,6 +116,10 @@ const Tetris = () => {
   const [showMenu, setShowMenu] = useState(true);
   
   const navigate = useNavigate();
+  const { addCoins } = useCoins();
+  const { getEquippedSkin } = useInventory();
+  const equippedSkin = getEquippedSkin('tetris');
+  const boardRef = useRef(null);
 
   // Generate random tetromino
   const generateTetromino = useCallback(() => {
@@ -201,10 +234,10 @@ const Tetris = () => {
     }
   }, [currentPiece, position, board, checkCollision, clearLines, generateTetromino, nextPiece, isPaused]);
 
-  // Handle key presses
+  // Update keyboard event handling
   useEffect(() => {
     const handleKeyPress = (e) => {
-      if (!gameRunning || isPaused) return;
+      if (!gameRunning || isPaused || !boardRef.current) return;
 
       switch (e.key) {
         case 'ArrowLeft':
@@ -236,6 +269,10 @@ const Tetris = () => {
       }
     };
 
+    if (boardRef.current) {
+      boardRef.current.focus();
+    }
+
     document.addEventListener('keydown', handleKeyPress);
     return () => document.removeEventListener('keydown', handleKeyPress);
   }, [gameRunning, currentPiece, position, movePiece, dropPiece, rotatePiece, checkCollision, isPaused]);
@@ -249,9 +286,9 @@ const Tetris = () => {
     return () => clearInterval(dropTimer);
   }, [dropPiece, dropTime, gameRunning, isPaused]);
 
-  // Start game
+  // Update startGame to focus the board
   const startGame = () => {
-    setBoard(createEmptyBoard());
+    setBoard(Array(BOARD_HEIGHT).fill().map(() => Array(BOARD_WIDTH).fill(0)));
     setCurrentPiece(generateTetromino());
     setNextPiece(generateTetromino());
     setPosition({ x: Math.floor(BOARD_WIDTH / 2) - 1, y: 0 });
@@ -263,6 +300,10 @@ const Tetris = () => {
     setIsPaused(false);
     setGameRunning(true);
     setShowMenu(false);
+    
+    if (boardRef.current) {
+      boardRef.current.focus();
+    }
   };
 
   return (
@@ -270,64 +311,81 @@ const Tetris = () => {
       width: '100%', 
       height: '100vh', 
       display: 'flex', 
+      flexDirection: 'column',
       justifyContent: 'center', 
       alignItems: 'center',
-      backgroundColor: '#1a1a1a'
+      backgroundColor: '#2c3e50',
+      gap: '20px'
     }}>
-      <GameContainer>
-        <div style={{ display: 'flex', gap: '20px' }}>
-          <TetrisBoard>
-            {board.map((row, y) => 
-              row.map((cell, x) => (
+      <CoinDisplay />
+      <div style={{ 
+        display: 'flex', 
+        gap: '20px', 
+        alignItems: 'flex-start'
+      }}>
+        <TetrisBoard 
+          ref={boardRef} 
+          tabIndex="0"
+          onKeyDown={(e) => e.preventDefault()} // Prevent scrolling with arrow keys
+        >
+          {board.map((row, y) => 
+            row.map((cell, x) => (
+              <Cell 
+                key={`${y}-${x}`} 
+                $color={cell}
+              />
+            ))
+          )}
+          {currentPiece && currentPiece.shape.map((row, y) => 
+            row.map((cell, x) => (
+              cell ? (
                 <Cell
-                  key={`${y}-${x}`}
-                  $color={cell || (
-                    currentPiece &&
-                    y >= position.y &&
-                    y < position.y + currentPiece.shape.length &&
-                    x >= position.x &&
-                    x < position.x + currentPiece.shape[0].length &&
-                    currentPiece.shape[y - position.y][x - position.x]
-                      ? currentPiece.color
-                      : undefined
-                  )}
+                  key={`piece-${y}-${x}`}
+                  $color={currentPiece.color}
+                  style={{
+                    position: 'absolute',
+                    top: `${(position.y + y) * 30}px`,
+                    left: `${(position.x + x) * 30}px`,
+                  }}
                 />
-              ))
-            )}
-          </TetrisBoard>
+              ) : null
+            ))
+          )}
+        </TetrisBoard>
 
-          <StatsPanel>
-            <NextPieceDisplay>
-              <h3>Next Piece</h3>
-              <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: `repeat(4, 20px)`,
-                gap: '1px',
-                padding: '10px'
-              }}>
-                {nextPiece && nextPiece.shape.map((row, y) =>
-                  row.map((cell, x) => (
-                    <Cell
-                      key={`next-${y}-${x}`}
-                      $color={cell ? nextPiece.color : undefined}
-                    />
-                  ))
-                )}
-              </div>
-            </NextPieceDisplay>
-            <Score>Score: {score}</Score>
-            <Level>Level: {level}</Level>
-            <Lines>Lines: {lines}</Lines>
-          </StatsPanel>
-        </div>
-      </GameContainer>
+        <StatsPanel>
+          <NextPieceDisplay>
+            <h3>Next Piece</h3>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(4, 30px)',
+              justifyContent: 'center',
+              backgroundColor: '#000',
+              padding: '10px',
+              borderRadius: '4px'
+            }}>
+              {nextPiece && nextPiece.shape.map((row, y) => 
+                row.map((cell, x) => (
+                  <Cell
+                    key={`next-${y}-${x}`}
+                    $color={cell ? nextPiece.color : undefined}
+                  />
+                ))
+              )}
+            </div>
+          </NextPieceDisplay>
+          <Score>Score: {score}</Score>
+          <Level>Level: {level}</Level>
+          <Lines>Lines: {lines}</Lines>
+        </StatsPanel>
+      </div>
 
       {showMenu && (
         <Menu>
           <h2>Tetris</h2>
-          <p>Use arrow keys to move and rotate pieces</p>
-          <p>Space to drop instantly</p>
-          <p>ESC to pause</p>
+          <p>Use arrow keys to move</p>
+          <p>Up arrow to rotate</p>
+          <p>Space to drop</p>
           {gameOver && (
             <>
               <p>Game Over!</p>
@@ -339,7 +397,9 @@ const Tetris = () => {
           <Button onClick={startGame}>
             {gameOver ? 'Play Again' : 'Start Game'}
           </Button>
-          <Button onClick={() => navigate('/')}>Home</Button>
+          <Button onClick={() => navigate('/')}>
+            Back to Menu
+          </Button>
         </Menu>
       )}
 

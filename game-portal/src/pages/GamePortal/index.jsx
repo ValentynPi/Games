@@ -1,79 +1,83 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
-import { 
-  Container, 
-  Header, 
-  Title, 
-  Subtitle,
-  GameGrid, 
-  GameCard, 
-  GameImage, 
-  GameInfo,
-  GameTitle, 
-  GameDescription,
-  PlayButton
+import { useNavigate } from 'react-router-dom';
+import { CoinDisplay } from '../../components/CoinDisplay';
+import {
+  PortalContainer,
+  GamesGrid,
+  GamesRow,
+  GameCard,
+  GameTitle,
+  GameImage,
+  ShopCard,
+  ShopIcon,
+  ShopTitle
 } from './styles';
 
-const games = [
+const GAMES = [
   {
     id: 'pong',
     title: 'Pong',
-    description: 'Classic table tennis game with modern graphics and smooth controls.',
-    image: 'https://via.placeholder.com/300x200/333/fff?text=Pong',
-    color: '#3498db'
+    image: 'https://raw.githubusercontent.com/valentinbujdoso/game-portal/main/public/assets/games/pong.png',
+    fallbackImage: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIyNSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMmMzZTUwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNHB4IiBmaWxsPSJ3aGl0ZSI+UG9uZzwvdGV4dD48L3N2Zz4='
   },
   {
     id: 'snake',
     title: 'Snake',
-    description: 'Guide your snake through the arena, collecting food and avoiding collisions.',
-    image: 'https://via.placeholder.com/300x200/333/fff?text=Snake',
-    color: '#2ecc71'
+    image: 'https://raw.githubusercontent.com/valentinbujdoso/game-portal/main/public/assets/games/snake.png',
+    fallbackImage: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIyNSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMmMzZTUwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNHB4IiBmaWxsPSJ3aGl0ZSI+U25ha2U8L3RleHQ+PC9zdmc+'
   },
   {
     id: 'tetris',
     title: 'Tetris',
-    description: 'Stack and clear blocks in this timeless puzzle game with a modern twist.',
-    image: 'https://via.placeholder.com/300x200/333/fff?text=Tetris',
-    color: '#e74c3c'
+    image: 'https://raw.githubusercontent.com/valentinbujdoso/game-portal/main/public/assets/games/tetris.png',
+    fallbackImage: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIyNSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMmMzZTUwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNHB4IiBmaWxsPSJ3aGl0ZSI+VGV0cmlzPC90ZXh0Pjwvc3ZnPg=='
   },
   {
     id: 'doodlejump',
     title: 'Doodle Jump',
-    description: 'Jump your way up through platforms in this endless climber.',
-    image: 'https://via.placeholder.com/300x200/333/fff?text=DoodleJump',
-    color: '#87CEEB'
+    image: 'https://raw.githubusercontent.com/valentinbujdoso/game-portal/main/public/assets/games/doodlejump.png',
+    fallbackImage: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIyNSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMmMzZTUwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNHB4IiBmaWxsPSJ3aGl0ZSI+RG9vZGxlIEp1bXA8L3RleHQ+PC9zdmc+'
   },
   {
     id: 'unblockme',
     title: 'Unblock Me',
-    description: 'Classic sliding block puzzle game. Help the red block escape!',
-    image: 'https://via.placeholder.com/300x200/333/fff?text=UnblockMe',
-    color: '#e74c3c'
+    image: 'https://raw.githubusercontent.com/valentinbujdoso/game-portal/main/public/assets/games/unblockme.png',
+    fallbackImage: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjIyNSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjMmMzZTUwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGRvbWluYW50LWJhc2VsaW5lPSJtaWRkbGUiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIyNHB4IiBmaWxsPSJ3aGl0ZSI+VW5ibG9jayBNZTwvdGV4dD48L3N2Zz4='
   }
 ];
 
 const GamePortal = () => {
+  const navigate = useNavigate();
+
+  const handleImageError = (e, fallbackImage) => {
+    e.target.src = fallbackImage;
+  };
+
   return (
-    <Container>
-      <Header>
-        <Title>Game Portal</Title>
-        <Subtitle>Choose your game and start playing!</Subtitle>
-      </Header>
-      <GameGrid>
-        {games.map(game => (
-          <GameCard key={game.id} $color={game.color}>
-            <GameImage src={game.image} alt={game.title} />
-            <GameInfo>
+    <PortalContainer>
+      <CoinDisplay />
+      <GamesGrid>
+        <ShopCard onClick={() => navigate('/shop')}>
+          <ShopIcon>🛍️</ShopIcon>
+          <ShopTitle>Shop</ShopTitle>
+        </ShopCard>
+        <GamesRow>
+          {GAMES.map(game => (
+            <GameCard
+              key={game.id}
+              onClick={() => navigate(`/game/${game.id}`)}
+            >
+              <GameImage 
+                src={game.image} 
+                alt={game.title} 
+                onError={(e) => handleImageError(e, game.fallbackImage)}
+              />
               <GameTitle>{game.title}</GameTitle>
-              <GameDescription>{game.description}</GameDescription>
-              <PlayButton as={Link} to={`/game/${game.id}`} $color={game.color}>
-                Play Now
-              </PlayButton>
-            </GameInfo>
-          </GameCard>
-        ))}
-      </GameGrid>
-    </Container>
+            </GameCard>
+          ))}
+        </GamesRow>
+      </GamesGrid>
+    </PortalContainer>
   );
 };
 

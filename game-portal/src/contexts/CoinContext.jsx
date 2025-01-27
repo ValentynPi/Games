@@ -1,27 +1,6 @@
-import React, { createContext, useState, useContext } from 'react';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const CoinContext = createContext();
-
-export const CoinProvider = ({ children }) => {
-  const [coins, setCoins] = useState(() => {
-    const savedCoins = localStorage.getItem('gameCoins');
-    return savedCoins ? parseInt(savedCoins, 10) : 0;
-  });
-
-  const addCoins = (amount) => {
-    setCoins(prev => {
-      const newTotal = prev + amount;
-      localStorage.setItem('gameCoins', newTotal.toString());
-      return newTotal;
-    });
-  };
-
-  return (
-    <CoinContext.Provider value={{ coins, addCoins }}>
-      {children}
-    </CoinContext.Provider>
-  );
-};
 
 export const useCoins = () => {
   const context = useContext(CoinContext);
@@ -29,4 +8,33 @@ export const useCoins = () => {
     throw new Error('useCoins must be used within a CoinProvider');
   }
   return context;
+};
+
+export const CoinProvider = ({ children }) => {
+  const [coins, setCoins] = useState(() => {
+    const savedCoins = localStorage.getItem('playerCoins');
+    return savedCoins ? parseInt(savedCoins, 10) : 1000;
+  });
+
+  useEffect(() => {
+    localStorage.setItem('playerCoins', coins.toString());
+  }, [coins]);
+
+  const addCoins = (amount) => {
+    setCoins(prev => prev + amount);
+  };
+
+  const spendCoins = (amount) => {
+    if (coins >= amount) {
+      setCoins(prev => prev - amount);
+      return true;
+    }
+    return false;
+  };
+
+  return (
+    <CoinContext.Provider value={{ coins, addCoins, spendCoins }}>
+      {children}
+    </CoinContext.Provider>
+  );
 }; 

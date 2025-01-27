@@ -1,8 +1,6 @@
 import styled, { keyframes } from 'styled-components';
 import { Menu } from '../../components/Menu';
-
-// Add CELL_SIZE constant
-const CELL_SIZE = 20;
+import { CELL_SIZE } from './constants';
 
 const bounceIn = keyframes`
   0% { transform: scale(0); }
@@ -10,59 +8,87 @@ const bounceIn = keyframes`
   100% { transform: scale(1); }
 `;
 
-export const SnakeSegment = styled.div`
-  position: absolute;
-  background-color: ${props => props.$isHead ? props.theme.colors.primary : props.theme.colors.success};
-  border-radius: ${props => props.$isHead ? '8px' : '4px'};
-  box-shadow: 0 0 10px rgba(40, 167, 69, 0.5);
-  transform: ${props => props.$isHead ? 'scale(1.1)' : 'scale(1)'};
-  z-index: ${props => props.$isHead ? 2 : 1};
-`;
-
-export const Food = styled.div`
-  position: absolute;
-  background-color: #e74c3c;
-  border-radius: 50%;
-  box-shadow: 0 0 15px rgba(231, 76, 60, 0.7);
-  transform: scale(0.9);
-  animation: pulse 1s infinite;
-  border: 2px solid #c0392b;
+export const SnakeGameContainer = styled.div`
+  width: ${props => props.$width}px;
+  height: ${props => props.$height}px;
+  border: 2px solid #2d8a4e;
+  position: relative;
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  outline: none;
+  box-shadow: 0 0 20px rgba(45, 138, 78, 0.3);
+  margin: 20px;
+  overflow: hidden;
+  transform: scale(1.2);
   
   &::before {
     content: '';
     position: absolute;
-    top: 15%;
-    left: 50%;
-    width: 20%;
-    height: 30%;
-    background: #2ecc71;
-    transform: translateX(-50%) rotate(-45deg);
-    border-radius: 2px;
+    top: -10px;
+    left: -10px;
+    right: -10px;
+    bottom: -10px;
+    background-color: rgba(0, 0, 0, 0.3);
+    z-index: -1;
+    border-radius: 12px;
+    box-shadow: 0 0 30px rgba(45, 138, 78, 0.4);
   }
+`;
 
-  &::after {
-    content: '';
-    position: absolute;
-    top: 10%;
-    right: 25%;
-    width: 15%;
-    height: 15%;
-    background: rgba(255, 255, 255, 0.6);
-    border-radius: 50%;
-  }
+export const SnakeSegment = styled.div`
+  width: ${CELL_SIZE}px;
+  height: ${CELL_SIZE}px;
+  position: absolute;
+  transition: all 0.1s linear;
+  z-index: 1;
+  ${({ isHead, skin }) => {
+    if (skin?.snake) {
+      return `
+        background: ${skin.snake.background || '#4CAF50'};
+        box-shadow: ${skin.snake.boxShadow || '0 0 10px rgba(76, 175, 80, 0.8)'};
+        border: ${skin.snake.border || '2px solid #388E3C'};
+        ${isHead ? `
+          border-radius: 6px;
+          background: #66BB6A;
+          box-shadow: 0 0 15px rgba(76, 175, 80, 1);
+        ` : ''}
+      `;
+    }
+    return `
+      background-color: ${isHead ? '#66BB6A' : '#4CAF50'};
+      box-shadow: ${isHead ? '0 0 15px rgba(76, 175, 80, 1)' : '0 0 10px rgba(76, 175, 80, 0.8)'};
+      border: 2px solid #388E3C;
+      ${isHead ? 'border-radius: 6px;' : ''}
+    `;
+  }}
+`;
 
-  @keyframes pulse {
-    0% { transform: scale(0.9); }
-    50% { transform: scale(1); }
-    100% { transform: scale(0.9); }
-  }
+export const Food = styled.div`
+  width: ${CELL_SIZE}px;
+  height: ${CELL_SIZE}px;
+  position: absolute;
+  border-radius: 50%;
+  ${({ skin }) => {
+    if (skin?.food) {
+      return `
+        background: ${skin.food.background || '#FF5252'};
+        box-shadow: ${skin.food.boxShadow || '0 0 5px rgba(255, 82, 82, 0.5)'};
+        border: ${skin.food.border || '1px solid #D32F2F'};
+      `;
+    }
+    return `
+      background-color: #FF5252;
+      box-shadow: 0 0 5px rgba(255, 82, 82, 0.5);
+      border: 1px solid #D32F2F;
+    `;
+  }}
 `;
 
 export const Score = styled.div`
   position: absolute;
   top: 20px;
-  right: 20px;
-  color: ${props => props.theme.colors.light};
+  left: 20px;
+  color: white;
   font-size: 24px;
   font-weight: bold;
 `;
@@ -83,32 +109,31 @@ export const GameOverlay = styled.div`
 
 export const Stats = styled.div`
   position: absolute;
-  top: 60px;
+  top: 20px;
   right: 20px;
-  color: ${props => props.theme.colors.light};
-  font-size: 18px;
-  font-weight: bold;
+  color: white;
+  font-size: 16px;
   text-align: right;
-  line-height: 1.5;
 `;
 
 export const PowerupItem = styled.div`
-  position: absolute;
   width: ${CELL_SIZE}px;
   height: ${CELL_SIZE}px;
+  position: absolute;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
-  animation: pulse 1s infinite;
-  z-index: 2;
+  font-size: 14px;
+  color: white;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 `;
 
 export const PowerupBar = styled.div`
   position: absolute;
-  top: 20px;
-  left: 20px;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
   display: flex;
   gap: 10px;
 `;
@@ -121,7 +146,9 @@ export const PowerupIndicator = styled.div`
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: fadeIn 0.3s;
+  color: white;
+  font-size: 14px;
+  box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
 `;
 
 export const ComboDisplay = styled.div`
@@ -129,11 +156,11 @@ export const ComboDisplay = styled.div`
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  color: #f1c40f;
-  font-size: 48px;
+  color: #FFC107;
+  font-size: 32px;
   font-weight: bold;
-  text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
-  animation: scaleIn 0.3s;
+  text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+  pointer-events: none;
 `;
 
 export const PauseMenu = styled(Menu)`
@@ -141,11 +168,11 @@ export const PauseMenu = styled(Menu)`
 `;
 
 export const CoinReward = styled.div`
-  font-size: 1.5em;
-  color: #f1c40f;
-  margin: 15px 0;
-  text-shadow: 0 0 10px rgba(241, 196, 15, 0.5);
-  animation: ${bounceIn} 0.5s ease-out;
+  color: #FFC107;
+  font-size: 24px;
+  margin: 10px 0;
+  text-shadow: 0 0 10px rgba(255, 193, 7, 0.5);
+  animation: pulse 1s infinite;
 `;
 
 export const PerfectBonus = styled.div`

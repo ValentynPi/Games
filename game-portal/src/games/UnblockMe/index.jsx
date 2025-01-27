@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import useSound from 'use-sound';
 import { GameContainer } from '../../components/GameContainer';
 import { Menu } from '../../components/Menu';
 import { Button } from '../../components/Button';
@@ -26,18 +27,14 @@ import {
 } from './styles';
 import { useCoins } from '../../contexts/CoinContext';
 import { CoinDisplay } from '../../components/CoinDisplay';
-import useSound from 'use-sound';
+import { Howl } from 'howler';
+import { useInventory } from '../../contexts/InventoryContext';
 
-// Mock sound function for when sound files are not available
-const mockSound = () => {};
-const mockSoundHook = [mockSound];
-
-// Since we don't have the actual sound files yet, we'll use empty strings
-// This will make the sounds silent but the game will still work
-const moveSound = '';
-const winSound = '';
-const selectSound = '';
-const perfectSound = '';
+// Initialize sounds with proper paths
+const moveSound = '/assets/sounds/move.mp3';
+const winSound = '/assets/sounds/win.mp3';
+const selectSound = '/assets/sounds/select.mp3';
+const perfectSound = '/assets/sounds/perfect.mp3';
 
 const BOARD_SIZE = 6;
 const CELL_SIZE = 80;
@@ -189,18 +186,11 @@ const UnblockMe = () => {
     return saved ? JSON.parse(saved) : true;
   });
 
-  // Sound hooks with fallback
-  const soundHooks = {
-    move: useSound(moveSound, { volume: 0.5, soundEnabled }) || mockSoundHook,
-    win: useSound(winSound, { volume: 0.5, soundEnabled }) || mockSoundHook,
-    select: useSound(selectSound, { volume: 0.3, soundEnabled }) || mockSoundHook,
-    perfect: useSound(perfectSound, { volume: 0.5, soundEnabled }) || mockSoundHook
-  };
-
-  const playMove = soundHooks.move[0];
-  const playWin = soundHooks.win[0];
-  const playSelect = soundHooks.select[0];
-  const playPerfect = soundHooks.perfect[0];
+  // Sound hooks
+  const [playMove] = useSound(moveSound, { volume: 0.5, soundEnabled });
+  const [playWin] = useSound(winSound, { volume: 0.7, soundEnabled });
+  const [playSelect] = useSound(selectSound, { volume: 0.3, soundEnabled });
+  const [playPerfect] = useSound(perfectSound, { volume: 0.6, soundEnabled });
 
   const navigate = useNavigate();
   const { addCoins } = useCoins();
@@ -241,6 +231,53 @@ const UnblockMe = () => {
       highlight: null
     }
   ];
+
+  const { getEquippedSkin } = useInventory();
+  const equippedSkin = getEquippedSkin('unblockme');
+
+  // Add effect to rerender when skin changes
+  useEffect(() => {
+    setBlocks(prevBlocks => [...prevBlocks]);
+  }, [equippedSkin]);
+
+  const getBlockStyle = (block) => {
+    const skin = equippedSkin?.styles || {};
+    const baseStyle = {
+      width: block.length * CELL_SIZE,
+      height: CELL_SIZE,
+      transform: `translate(${block.x * CELL_SIZE}px, ${block.y * CELL_SIZE}px)`,
+      transition: 'transform 0.2s ease-out, background 0.3s ease',
+      cursor: 'pointer',
+      position: 'absolute',
+      borderRadius: '4px',
+      ...skin.baseStyle
+    };
+
+    if (block.isMain) {
+      return {
+        ...baseStyle,
+        background: skin.mainBlock?.background || MAIN_BLOCK_COLOR,
+        boxShadow: skin.mainBlock?.boxShadow || '0 0 10px rgba(231, 76, 60, 0.5)',
+        border: skin.mainBlock?.border || '2px solid #c0392b',
+      };
+    }
+
+    if (block.isHorizontal) {
+      return {
+        ...baseStyle,
+        background: skin.horizontalBlock?.background || HORIZONTAL_BLOCK_COLOR,
+        boxShadow: skin.horizontalBlock?.boxShadow || '0 0 10px rgba(46, 204, 113, 0.5)',
+        border: skin.horizontalBlock?.border || '2px solid #27ae60',
+      };
+    }
+
+    return {
+      ...baseStyle,
+      background: skin.verticalBlock?.background || VERTICAL_BLOCK_COLOR,
+      boxShadow: skin.verticalBlock?.boxShadow || '0 0 10px rgba(52, 152, 219, 0.5)',
+      border: skin.verticalBlock?.border || '2px solid #2980b9',
+    };
+  };
 
   useEffect(() => {
     let interval;
@@ -297,13 +334,13 @@ const UnblockMe = () => {
       addCoins(totalCoins);
 
       if (perfectBonus > 0) {
-        soundHooks.perfect[0]();
+        playPerfect();
       }
-      soundHooks.win[0]();
+      playWin();
 
       levelCompletedRef.current = true;
     }
-  }, [currentLevel, moves, timer, hintsUsed, addCoins, soundHooks]);
+  }, [currentLevel, moves, timer, hintsUsed, addCoins, playWin, playPerfect]);
 
   const addToHistory = useCallback((newBlocks) => {
     setMoveHistory(prev => {
@@ -378,7 +415,7 @@ const UnblockMe = () => {
       newBlocks[blockIndex] = newPos;
       
       // Play move sound
-      soundHooks.move[0]();
+      playMove();
 
       // Add to history and count move
       if (!moveCountedRef.current) {
@@ -404,7 +441,7 @@ const UnblockMe = () => {
     lastMoveTime,
     selectedBlock,
     currentLevel,
-    soundHooks,
+    playMove,
     checkCollision,
     addToHistory,
     handleLevelComplete
@@ -412,12 +449,12 @@ const UnblockMe = () => {
 
   const handleBlockClick = useCallback((block) => {
     if (gameWon) return;
-    soundHooks.select[0]();
+    playSelect();
     if (selectedBlock?.id !== block.id) {
       moveCountedRef.current = false;
     }
     setSelectedBlock(block);
-  }, [gameWon, selectedBlock, soundHooks]);
+  }, [gameWon, selectedBlock, playSelect]);
 
   // Initialize move history when level changes
   useEffect(() => {
@@ -542,12 +579,7 @@ const UnblockMe = () => {
               $length={block.length}
               $isSelected={selectedBlock?.id === block.id}
               $isHighlighted={showHint && block.isMain}
-              style={{
-                transform: `translate(${block.x * CELL_SIZE}px, ${block.y * CELL_SIZE}px)`,
-                backgroundColor: block.isMain ? MAIN_BLOCK_COLOR :
-                               block.isHorizontal ? HORIZONTAL_BLOCK_COLOR :
-                               VERTICAL_BLOCK_COLOR
-              }}
+              style={getBlockStyle(block)}
               onClick={() => handleBlockClick(block)}
             />
           ))}

@@ -1,57 +1,40 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import styled from 'styled-components';
 import { GameContainer } from '../../components/GameContainer';
 import { Menu } from '../../components/Menu';
 import { Button } from '../../components/Button';
-import { SnakeSegment, Food, GameOverlay, Score, Stats, PowerupItem, PowerupBar, PowerupIndicator, ComboDisplay, PauseMenu, CoinReward, PerfectBonus } from './styles';
 import { useCoins } from '../../contexts/CoinContext';
+import { useInventory } from '../../contexts/InventoryContext';
 import { CoinDisplay } from '../../components/CoinDisplay';
+import {
+  SnakeGameContainer,
+  SnakeSegment,
+  Food,
+  Score,
+  Stats,
+  PowerupItem,
+  PowerupBar,
+  PowerupIndicator,
+  ComboDisplay,
+  PauseMenu,
+  CoinReward
+} from './styles';
+import { 
+  CELL_SIZE, 
+  GRID_SIZE, 
+  INITIAL_SNAKE_LENGTH, 
+  POWERUP_TYPES,
+  FOOD_TYPES 
+} from './constants';
 
-const GRID_SIZE = 20;
-const GAME_WIDTH = 800;
-const GAME_HEIGHT = 600;
-const INITIAL_SPEED = 100;
-const CELL_SIZE = 20;
-
-// Add new constants
-const INITIAL_SNAKE_LENGTH = 3;
-const SPEED_INCREASE_FACTOR = 0.95;
+// Game constants
+const GAME_WIDTH = GRID_SIZE * CELL_SIZE;
+const GAME_HEIGHT = GRID_SIZE * CELL_SIZE;
 const BASE_GAME_SPEED = 150;
-const MAX_SPEED = 50;
-const POINTS_PER_FOOD = 10;
-
-// Add new constants for enhanced gameplay
-const POWERUP_TYPES = {
-  SPEED_BOOST: { 
-    color: '#3498db', 
-    duration: 5000, 
-    effect: 'Increases snake speed temporarily',
-    symbol: '⚡'
-  },
-  SHIELD: { 
-    color: '#f39c12', 
-    duration: 8000, 
-    effect: 'Allows passing through walls once',
-    symbol: '🛡️'
-  },
-  DOUBLE_POINTS: { 
-    color: '#9b59b6', 
-    duration: 10000, 
-    effect: 'Doubles points from food',
-    symbol: '×2'
-  }
-};
-
-// Update FOOD_TYPES with more variety
-const FOOD_TYPES = {
-  REGULAR: { points: 10, color: '#e74c3c', symbol: '🍎' },
-  GOLDEN: { points: 30, color: '#f1c40f', symbol: '🌟' },
-  SPECIAL: { points: 50, color: '#9b59b6', symbol: '💎' },
-  BONUS: { points: 100, color: '#2ecc71', symbol: '🎁' }
-};
-
-const GOLDEN_APPLE_CHANCE = 0.15; // 15% chance for golden apple
-const SPECIAL_APPLE_CHANCE = 0.05; // 5% chance for special apple
+const SPEED_INCREASE = 2;
+const SPECIAL_APPLE_CHANCE = 0.1;
+const GOLDEN_APPLE_CHANCE = 0.05;
 
 const getRandomPosition = (snakeBody) => {
   let attempts = 0;
@@ -59,8 +42,8 @@ const getRandomPosition = (snakeBody) => {
 
   while (attempts < 100) {
     newPos = {
-      x: Math.floor(Math.random() * (GAME_WIDTH / CELL_SIZE)) * CELL_SIZE,
-      y: Math.floor(Math.random() * (GAME_HEIGHT / CELL_SIZE)) * CELL_SIZE,
+      x: Math.floor(Math.random() * (GAME_WIDTH / CELL_SIZE)),
+      y: Math.floor(Math.random() * (GAME_HEIGHT / CELL_SIZE)),
       type: decideFoodType()
     };
 
@@ -89,9 +72,22 @@ const decideFoodType = () => {
   return 'REGULAR';
 };
 
+// Add createInitialSnake function at the top with other utility functions
+const createInitialSnake = () => {
+  const center = Math.floor(GRID_SIZE / 2);
+  return Array.from({ length: INITIAL_SNAKE_LENGTH }, (_, i) => ({
+    x: center - i,
+    y: center
+  }));
+};
+
 const Snake = () => {
-  const [snake, setSnake] = useState([{ x: 200, y: 200 }]);
-  const [food, setFood] = useState(() => getRandomPosition([{ x: 200, y: 200 }]));
+  // Update initial snake state to use createInitialSnake
+  const [snake, setSnake] = useState(createInitialSnake());
+  const [food, setFood] = useState(() => ({
+    ...getRandomPosition([{ x: 10, y: 10 }]),
+    type: FOOD_TYPES.REGULAR
+  }));
   const [direction, setDirection] = useState('RIGHT');
   const [gameRunning, setGameRunning] = useState(false);
   const [showMenu, setShowMenu] = useState(true);
@@ -126,6 +122,8 @@ const Snake = () => {
 
   const { addCoins } = useCoins();
   const [lastCoinScore, setLastCoinScore] = useState(0);
+  const { getEquippedSkin } = useInventory();
+  const equippedSkin = getEquippedSkin('snake');
 
   const checkCollision = (head) => {
     // Wall collision
@@ -148,72 +146,71 @@ const Snake = () => {
     return false;
   };
 
-  // Update moveSnake function to properly handle scoring and coins
-  const moveSnake = () => {
-    if (isPaused || !gameRunning) return;
+  const moveSnake = useCallback(() => {
+    if (!gameRunning || isPaused) return;
 
-    setSnake((prevSnake) => {
-      const newSnake = [...prevSnake];
-      const head = { ...newSnake[0] };
+    setSnake(prevSnake => {
+      const head = { ...prevSnake[0] };
       
-      // Update head position based on direction
-      switch (direction) {
-        case 'UP': head.y -= CELL_SIZE; break;
-        case 'DOWN': head.y += CELL_SIZE; break;
-        case 'LEFT': head.x -= CELL_SIZE; break;
-        case 'RIGHT': head.x += CELL_SIZE; break;
-        default: break;
+      switch (directionQueue.current) {
+        case 'UP':
+          head.y -= 1;
+          break;
+        case 'DOWN':
+          head.y += 1;
+          break;
+        case 'LEFT':
+          head.x -= 1;
+          break;
+        case 'RIGHT':
+          head.x += 1;
+          break;
+        default:
+          break;
       }
 
-      // Check for collisions
       if (checkCollision(head)) {
         handleGameOver();
         return prevSnake;
       }
 
-      // Add new head
-      newSnake.unshift(head);
+      const newSnake = [head, ...prevSnake.slice(0, -1)];
 
-      // Check for food collision
+      // Check if snake ate food
       if (head.x === food.x && head.y === food.y) {
-        // Update score and coins
-        const newScore = score + (FOOD_TYPES[food.type].points * level);
-        setScore(newScore);
+        // Grow snake
+        newSnake.push(prevSnake[prevSnake.length - 1]);
         
-        // Award coins for every 100 points
-        const newCoinScore = Math.floor(newScore / 100);
-        if (newCoinScore > lastCoinScore) {
-          const coinsToAdd = (newCoinScore - lastCoinScore) * 10;
-          addCoins(coinsToAdd);
-          setLastCoinScore(newCoinScore);
-        }
-
-        setFoodEaten(prev => prev + 1);
+        // Update score and food
+        setScore(prev => prev + 10);
         setFood(getRandomPosition(newSnake));
-      } else {
-        // Remove tail if no food was eaten
-        newSnake.pop();
+        setFoodEaten(prev => prev + 1);
+        
+        // Increase speed
+        if (foodEaten > 0 && foodEaten % 5 === 0) {
+          setGameSpeed(prev => Math.max(prev - SPEED_INCREASE, 50));
+          setLevel(prev => prev + 1);
+        }
       }
 
       return newSnake;
     });
-  };
+  }, [gameRunning, isPaused, food, checkCollision, foodEaten]);
 
-  // Update createInitialSnake function to ensure proper initial length
-  const createInitialSnake = () => {
-    const snake = [];
-    const startX = Math.floor(GAME_WIDTH / (2 * CELL_SIZE)) * CELL_SIZE;
-    const startY = Math.floor(GAME_HEIGHT / (2 * CELL_SIZE)) * CELL_SIZE;
+  // Update game loop
+  useEffect(() => {
+    let gameInterval;
     
-    // Create initial snake segments
-    for (let i = 0; i < INITIAL_SNAKE_LENGTH; i++) {
-      snake.push({
-        x: startX - (i * CELL_SIZE), // Place segments to the left of the head
-        y: startY
-      });
+    if (gameRunning && !isPaused) {
+      gameInterval = setInterval(moveSnake, gameSpeed);
     }
-    return snake;
-  };
+    
+    return () => {
+      if (gameInterval) {
+        clearInterval(gameInterval);
+      }
+    };
+  }, [gameRunning, isPaused, gameSpeed, moveSnake]);
 
   // Add powerup generation logic
   const generatePowerup = () => {
@@ -239,89 +236,55 @@ const Snake = () => {
     setShowMenu(true);
   };
 
-  // Update game loop with consistent timing
-  useEffect(() => {
-    let intervalId;
+  const handleKeyDown = useCallback((e) => {
+    if (!gameRunning || isPaused) return;
 
-    const gameLoop = () => {
-      if (gameRunning && !isPaused) {
-        moveSnake();
-      }
-    };
-
-    if (gameRunning && !isPaused) {
-      intervalId = setInterval(gameLoop, 150); // Adjust speed here
+    switch (e.key) {
+      case 'ArrowUp':
+      case 'w':
+      case 'W':
+        if (direction !== 'DOWN') {
+          directionQueue.current = 'UP';
+          setDirection('UP');
+        }
+        break;
+      case 'ArrowDown':
+      case 's':
+      case 'S':
+        if (direction !== 'UP') {
+          directionQueue.current = 'DOWN';
+          setDirection('DOWN');
+        }
+        break;
+      case 'ArrowLeft':
+      case 'a':
+      case 'A':
+        if (direction !== 'RIGHT') {
+          directionQueue.current = 'LEFT';
+          setDirection('LEFT');
+        }
+        break;
+      case 'ArrowRight':
+      case 'd':
+      case 'D':
+        if (direction !== 'LEFT') {
+          directionQueue.current = 'RIGHT';
+          setDirection('RIGHT');
+        }
+        break;
+      case 'Escape':
+        setIsPaused(prev => !prev);
+        break;
+      default:
+        break;
     }
-
-    return () => {
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
   }, [gameRunning, isPaused, direction]);
 
-  // Add this useEffect for keyboard controls after the game loop useEffect
+  // Remove the old keyboard event listeners since we're now using onKeyDown prop
   useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (!gameRunning) return;
-
-      switch (e.key) {
-        case 'ArrowUp':
-        case 'w':
-        case 'W':
-          if (directionQueue.current !== 'DOWN') {
-            directionQueue.current = 'UP';
-            setDirection('UP');
-          }
-          break;
-        case 'ArrowDown':
-        case 's':
-        case 'S':
-          if (directionQueue.current !== 'UP') {
-            directionQueue.current = 'DOWN';
-            setDirection('DOWN');
-          }
-          break;
-        case 'ArrowLeft':
-        case 'a':
-        case 'A':
-          if (directionQueue.current !== 'RIGHT') {
-            directionQueue.current = 'LEFT';
-            setDirection('LEFT');
-          }
-          break;
-        case 'ArrowRight':
-        case 'd':
-        case 'D':
-          if (directionQueue.current !== 'LEFT') {
-            directionQueue.current = 'RIGHT';
-            setDirection('RIGHT');
-          }
-          break;
-        default:
-          break;
-      }
-    };
-
-    // Add the event listener to document
-    document.addEventListener('keydown', handleKeyPress);
-    
-    // Clean up
-    return () => {
-      document.removeEventListener('keydown', handleKeyPress);
-    };
-  }, [gameRunning]);
-
-  // Add pause handling
-  useEffect(() => {
-    const handlePause = (e) => {
-      if (e.key === 'Escape' && gameRunning) {
-        setIsPaused(prev => !prev);
-      }
-    };
-
-    document.addEventListener('keydown', handlePause);
-    return () => document.removeEventListener('keydown', handlePause);
+    if (gameContainerRef.current) {
+      gameContainerRef.current.focus();
+    }
   }, [gameRunning]);
 
   // Update startGame function
@@ -350,97 +313,103 @@ const Snake = () => {
       width: '100%', 
       height: '100vh', 
       display: 'flex', 
+      flexDirection: 'column',
       justifyContent: 'center', 
       alignItems: 'center',
-      backgroundColor: '#1a1a1a'
+      backgroundColor: '#2c3e50',
+      gap: '30px',
+      padding: '40px'
     }}>
       <CoinDisplay />
-      <GameContainer
-        ref={gameContainerRef}
-        style={{
-          width: `${GAME_WIDTH}px`,
-          height: `${GAME_HEIGHT}px`,
-          backgroundColor: '#000',
-          position: 'relative',
-          border: '2px solid #333',
-          borderRadius: '4px',
-          outline: 'none'
-        }}
-        tabIndex="0"
-      >
-        {snake.map((segment, index) => (
-          <SnakeSegment
-            key={index}
-            $isHead={index === 0}
-            style={{
-              left: `${segment.x}px`,
-              top: `${segment.y}px`,
-              width: `${CELL_SIZE}px`,
-              height: `${CELL_SIZE}px`,
-            }}
-          />
-        ))}
-        <Food
-          style={{
-            left: `${food.x}px`,
-            top: `${food.y}px`,
-            width: `${CELL_SIZE}px`,
-            height: `${CELL_SIZE}px`,
-            backgroundColor: FOOD_TYPES[food.type].color,
-            boxShadow: `0 0 15px ${FOOD_TYPES[food.type].color}99`
-          }}
-        />
-        <Score>Score: {score}</Score>
-        <Stats>
-          Level: {level}<br/>
-          Speed: {Math.floor((BASE_GAME_SPEED - gameSpeed) / BASE_GAME_SPEED * 100)}%<br/>
-          Food: {foodEaten}<br/>
-          Time: {Math.floor(timeAlive / 10)}s<br/>
-          Max Combo: {maxCombo}
-        </Stats>
-
-        {/* Add powerup display */}
-        {powerup && (
-          <PowerupItem
-            style={{
-              left: `${powerup.x}px`,
-              top: `${powerup.y}px`,
-              backgroundColor: POWERUP_TYPES[powerup.type].color
-            }}
-          >
-            {POWERUP_TYPES[powerup.type].symbol}
-          </PowerupItem>
-        )}
-
-        {/* Add active powerup indicators */}
-        <PowerupBar>
-          {activePowerups.map((type, index) => (
-            <PowerupIndicator
+      <div style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: '20px',
+        padding: '40px',
+        backgroundColor: 'rgba(0, 0, 0, 0.2)',
+        borderRadius: '16px',
+        boxShadow: '0 0 40px rgba(0, 0, 0, 0.3)',
+        minWidth: '800px'
+      }}>
+        <SnakeGameContainer
+          ref={gameContainerRef}
+          tabIndex="0"
+          $width={GAME_WIDTH}
+          $height={GAME_HEIGHT}
+          onKeyDown={handleKeyDown}
+        >
+          {snake.map((segment, index) => (
+            <SnakeSegment
               key={index}
-              $color={POWERUP_TYPES[type].color}
-            >
-              {POWERUP_TYPES[type].symbol}
-            </PowerupIndicator>
+              style={{
+                left: `${segment.x * CELL_SIZE}px`,
+                top: `${segment.y * CELL_SIZE}px`
+              }}
+              isHead={index === 0}
+              skin={equippedSkin?.styles}
+            />
           ))}
-        </PowerupBar>
+          <Food
+            style={{
+              left: `${food.x * CELL_SIZE}px`,
+              top: `${food.y * CELL_SIZE}px`
+            }}
+            skin={equippedSkin?.styles}
+          />
+          <Score>Score: {score}</Score>
+          <Stats>
+            Level: {level}<br/>
+            Speed: {Math.floor((BASE_GAME_SPEED - gameSpeed) / BASE_GAME_SPEED * 100)}%<br/>
+            Food: {foodEaten}<br/>
+            Time: {Math.floor(timeAlive / 10)}s<br/>
+            Max Combo: {maxCombo}
+          </Stats>
 
-        {/* Add combo display */}
-        {combo > 1 && (
-          <ComboDisplay>
-            Combo: x{combo}
-          </ComboDisplay>
-        )}
+          {/* Add powerup display */}
+          {powerup && (
+            <PowerupItem
+              style={{
+                left: `${powerup.x}px`,
+                top: `${powerup.y}px`,
+                backgroundColor: POWERUP_TYPES[powerup.type].color
+              }}
+            >
+              {POWERUP_TYPES[powerup.type].symbol}
+            </PowerupItem>
+          )}
 
-        {/* Add pause menu */}
-        {isPaused && (
-          <PauseMenu>
-            <h2>Paused</h2>
-            <p>Press ESC to resume</p>
-            <Button onClick={() => setIsPaused(false)}>Resume</Button>
-            <Button onClick={() => navigate('/')}>Quit</Button>
-          </PauseMenu>
-        )}
-      </GameContainer>
+          {/* Add active powerup indicators */}
+          <PowerupBar>
+            {activePowerups.map((type, index) => (
+              <PowerupIndicator
+                key={index}
+                $color={POWERUP_TYPES[type].color}
+              >
+                {POWERUP_TYPES[type].symbol}
+              </PowerupIndicator>
+            ))}
+          </PowerupBar>
+
+          {/* Add combo display */}
+          {combo > 1 && (
+            <ComboDisplay>
+              Combo: x{combo}
+            </ComboDisplay>
+          )}
+
+          {/* Add pause menu */}
+          {isPaused && (
+            <PauseMenu>
+              <h2>Paused</h2>
+              <p>Press ESC to resume</p>
+              <Button onClick={() => setIsPaused(false)}>Resume</Button>
+              <Button onClick={() => navigate('/')}>Quit</Button>
+            </PauseMenu>
+          )}
+        </SnakeGameContainer>
+      </div>
 
       {showMenu && (
         <Menu>

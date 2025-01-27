@@ -14,6 +14,7 @@ import {
 } from './styles';
 import { useCoins } from '../../contexts/CoinContext';
 import { CoinDisplay } from '../../components/CoinDisplay';
+import { useInventory } from '../../contexts/InventoryContext';
 
 const GAME_WIDTH = 1000;
 const GAME_HEIGHT = 600;
@@ -27,10 +28,11 @@ const MAX_BALL_SPEED = 15;
 const MAX_VERTICAL_ANGLE = 0.75;
 
 // Add these constants for computer AI
-const EASY_SPEED = 6;
-const MEDIUM_SPEED = 8;
-const HARD_SPEED = 10;
-const PREDICTION_FACTOR = 1.2; // Increased prediction factor
+const PADDLE_SPEED = 15; // Increased from default
+const EASY_SPEED = 4;
+const MEDIUM_SPEED = 6;
+const HARD_SPEED = 8;
+const PREDICTION_FACTOR = 0.8; // Reduced from 1.2 to make AI less perfect
 const EASY_MISTAKE_CHANCE = 0.3;  // 30% chance to make a mistake
 const EASY_REACTION_DELAY = 0.5;  // Slower reactions in easy mode
 
@@ -81,6 +83,52 @@ export const Pong = () => {
   const frameIdRef = useRef(null);
   const navigate = useNavigate();
 
+  const { getEquippedSkin } = useInventory();
+  const equippedSkin = getEquippedSkin('pong');
+
+  // Add paddle movement state
+  const [keyState, setKeyState] = useState({
+    ArrowUp: false,
+    ArrowDown: false
+  });
+
+  const getPaddleStyle = useCallback((isPlayer) => {
+    const skin = equippedSkin?.styles || {};
+    const baseStyle = {
+      width: PADDLE_WIDTH,
+      height: skin.baseStyle?.height || PADDLE_HEIGHT,
+      position: 'absolute',
+      borderRadius: '4px',
+      transition: 'background 0.3s ease, box-shadow 0.3s ease',
+      ...skin.baseStyle
+    };
+
+    if (isPlayer) {
+      return {
+        ...baseStyle,
+        left: PADDLE_OFFSET,
+        background: skin.playerPaddle?.background || '#fff',
+        boxShadow: skin.playerPaddle?.boxShadow || '0 0 10px rgba(255, 255, 255, 0.5)',
+        border: skin.playerPaddle?.border || '2px solid rgba(255, 255, 255, 0.8)'
+      };
+    }
+
+    return {
+      ...baseStyle,
+      right: PADDLE_OFFSET,
+      background: skin.computerPaddle?.background || '#fff',
+      boxShadow: skin.computerPaddle?.boxShadow || '0 0 10px rgba(255, 255, 255, 0.5)',
+      border: skin.computerPaddle?.border || '2px solid rgba(255, 255, 255, 0.8)'
+    };
+  }, [equippedSkin]);
+
+  // Add effect to rerender when skin changes
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.style.border = equippedSkin?.styles?.border || '2px solid #2d8a4e';
+    }
+  }, [equippedSkin]);
+
   const resetBall = () => {
     const direction = Math.random() > 0.5 ? 1 : -1;
     const angle = (Math.random() * 0.3 - 0.15) * Math.PI;
@@ -91,22 +139,25 @@ export const Pong = () => {
     });
   };
 
-  const handlePaddleCollision = useCallback((next, paddleY, isPlayer) => {
-    const ballCenter = next.y + BALL_SIZE / 2;
-    const paddleCenter = paddleY + PADDLE_HEIGHT / 2;
+  const handlePaddleCollision = useCallback((isPlayer) => {
+    const paddleHeight = equippedSkin?.styles?.baseStyle?.height || PADDLE_HEIGHT;
+    const INITIAL_SPEED = 8;
+    const MAX_BOUNCE_ANGLE = Math.PI / 3; // 60 degrees
     
-    const relativeIntersectY = (ballCenter - paddleCenter) / (PADDLE_HEIGHT / 2);
-    const bounceAngle = relativeIntersectY * MAX_VERTICAL_ANGLE;
-    
+    const paddleY = isPlayer ? playerY : computerY;
+    const relativeIntersectY = (paddleY + (paddleHeight / 2)) - ballPos.y;
+    const normalizedIntersectY = relativeIntersectY / (paddleHeight / 2);
+    const bounceAngle = normalizedIntersectY * MAX_BOUNCE_ANGLE;
+
+    // Maintain or slightly increase speed after collision
     const currentSpeed = Math.sqrt(ballSpeed.x * ballSpeed.x + ballSpeed.y * ballSpeed.y);
-    const newSpeed = Math.min(currentSpeed * BOUNCE_MULTIPLIER, MAX_BALL_SPEED);
+    const newSpeed = Math.max(currentSpeed, INITIAL_SPEED);
     
-    const direction = isPlayer ? 1 : -1;
     return {
-      x: direction * newSpeed * Math.cos(bounceAngle),
-      y: newSpeed * Math.sin(bounceAngle)
+      x: (isPlayer ? 1 : -1) * newSpeed * Math.cos(bounceAngle),
+      y: -newSpeed * Math.sin(bounceAngle)
     };
-  }, [ballSpeed]);
+  }, [ballPos, playerY, computerY, ballSpeed, equippedSkin]);
 
   const handleWallCollision = useCallback((next, prevSpeed) => {
     return {
@@ -137,44 +188,41 @@ export const Pong = () => {
         next.y = newPos.y;
       }
 
-      if (next.x <= PADDLE_OFFSET + PADDLE_WIDTH &&
-          next.x >= PADDLE_OFFSET &&
-          next.y + BALL_SIZE >= playerY &&
-          next.y <= playerY + PADDLE_HEIGHT) {
+      // Player paddle collision - more precise detection
+      const playerPaddleRight = PADDLE_OFFSET + PADDLE_WIDTH;
+      const ballLeft = next.x;
+      const ballRight = next.x + BALL_SIZE;
+      const ballTop = next.y;
+      const ballBottom = next.y + BALL_SIZE;
+      
+      if (ballSpeed.x < 0 && // Only check when ball is moving left
+          ballLeft <= playerPaddleRight &&
+          ballRight > PADDLE_OFFSET && // Prevent triggering when ball is past paddle
+          ballBottom >= playerY &&
+          ballTop <= playerY + PADDLE_HEIGHT) {
         
-        setBallSpeed(handlePaddleCollision(next, playerY, true));
-        next.x = PADDLE_OFFSET + PADDLE_WIDTH;
-        
-        setRallyLength(prev => {
-          const newRally = prev + 1;
-          if (newRally % 5 === 0) {
-            const coinsToAdd = Math.min(Math.floor(newRally / 5) * 5, 20);
-            addCoins(coinsToAdd);
-            setCoinScore(prev => prev + coinsToAdd);
-          }
-          return newRally;
-        });
+        const newSpeed = handlePaddleCollision(true);
+        setBallSpeed(newSpeed);
+        next.x = playerPaddleRight;
+        setRallyLength(prev => prev + 1);
       }
       
-      else if (next.x + BALL_SIZE >= GAME_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH &&
-               next.x <= GAME_WIDTH - PADDLE_OFFSET &&
-               next.y + BALL_SIZE >= computerY &&
-               next.y <= computerY + PADDLE_HEIGHT) {
+      // Computer paddle collision - more precise detection
+      const computerPaddleLeft = GAME_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH;
+      
+      if (ballSpeed.x > 0 && // Only check when ball is moving right
+          ballRight >= computerPaddleLeft &&
+          ballLeft < GAME_WIDTH - PADDLE_OFFSET && // Prevent triggering when ball is past paddle
+          ballBottom >= computerY &&
+          ballTop <= computerY + PADDLE_HEIGHT) {
         
-        setBallSpeed(handlePaddleCollision(next, computerY, false));
-        next.x = GAME_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH - BALL_SIZE;
-        
-        setRallyLength(prev => {
-          const newRally = prev + 1;
-          if (newRally % 5 === 0) {
-            const coinsToAdd = Math.min(Math.floor(newRally / 5) * 5, 20);
-            addCoins(coinsToAdd);
-            setCoinScore(prev => prev + coinsToAdd);
-          }
-          return newRally;
-        });
+        const newSpeed = handlePaddleCollision(false);
+        setBallSpeed(newSpeed);
+        next.x = computerPaddleLeft - BALL_SIZE;
+        setRallyLength(prev => prev + 1);
       }
 
+      // Scoring logic
       if (next.x <= 0) {
         setComputerScore(prev => prev + 1);
         setRallyLength(0);
@@ -194,52 +242,45 @@ export const Pong = () => {
     updateComputerPosition();
   };
 
-  const updateComputerPosition = () => {
+  const updateComputerPosition = useCallback(() => {
     const computerSpeed = difficulty === 5 ? EASY_SPEED : 
                          difficulty === 7 ? MEDIUM_SPEED : 
                          HARD_SPEED;
 
     setComputerY(prev => {
-      const ballCenterY = ballPos.y + BALL_SIZE / 2;
-      
-      let targetY = ballCenterY;
-      
-      if (ballSpeed.x > 0) {
-        const timeToReach = (GAME_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH - ballPos.x) / ballSpeed.x;
-        targetY = ballCenterY + (ballSpeed.y * timeToReach * PREDICTION_FACTOR);
+      // Only move if the ball is moving towards the computer
+      if (ballSpeed.x <= 0) {
+        // Return to center when ball is moving away
+        const centerY = GAME_HEIGHT / 2 - PADDLE_HEIGHT / 2;
+        const moveToCenter = centerY > prev ? 
+          Math.min(prev + computerSpeed / 2, centerY) : 
+          Math.max(prev - computerSpeed / 2, centerY);
+        return moveToCenter;
+      }
 
-        if (difficulty === 5) {
-          if (Math.random() < EASY_MISTAKE_CHANCE) {
-            targetY = prev + (Math.random() * 100 - 50);
-          }
-          
-          targetY = ballCenterY + (ballSpeed.y * timeToReach * EASY_REACTION_DELAY);
-          
-          if (Math.random() < EASY_MISTAKE_CHANCE) {
-            targetY += (Math.random() * 200 - 100);
-          }
-        }
+      const ballCenterY = ballPos.y + BALL_SIZE / 2;
+      let targetY = ballCenterY - PADDLE_HEIGHT / 2;
+
+      // Add prediction for ball position
+      const timeToReach = (GAME_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH - ballPos.x) / ballSpeed.x;
+      targetY = ballCenterY + (ballSpeed.y * timeToReach * PREDICTION_FACTOR) - PADDLE_HEIGHT / 2;
+
+      // Add randomness to make it less perfect
+      if (difficulty === 5) { // Easy mode
+        targetY += (Math.random() - 0.5) * PADDLE_HEIGHT * 0.5;
+      } else if (difficulty === 7) { // Medium mode
+        targetY += (Math.random() - 0.5) * PADDLE_HEIGHT * 0.3;
       }
-      
-      const randomError = (Math.random() - 0.5) * (difficulty === 5 ? 30 : 
-                                                  difficulty === 7 ? 15 : 
-                                                  5);
-      targetY += randomError;
-      
-      targetY -= PADDLE_HEIGHT / 2;
-      
+
+      // Clamp target position
+      targetY = Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, targetY));
+
+      // Move towards target
       const diff = targetY - prev;
-      const direction = diff > 0 ? 1 : -1;
-      
-      let movement = Math.min(Math.abs(diff), computerSpeed);
-      if (difficulty === 5 && Math.random() < EASY_MISTAKE_CHANCE) {
-        movement *= 0.5;
-      }
-      
-      const newY = prev + (movement * direction);
-      return Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY));
+      if (Math.abs(diff) < computerSpeed) return targetY;
+      return prev + Math.sign(diff) * computerSpeed;
     });
-  };
+  }, [ballPos, ballSpeed, difficulty]);
 
   const startGame = () => {
     setPlayerScore(0);
@@ -270,12 +311,13 @@ export const Pong = () => {
           next.y = newPos.y;
         }
 
+        // Player paddle collision
         if (next.x <= PADDLE_OFFSET + PADDLE_WIDTH &&
             next.x >= PADDLE_OFFSET &&
             next.y + BALL_SIZE >= playerY &&
             next.y <= playerY + PADDLE_HEIGHT) {
           
-          const newSpeed = handlePaddleCollision(next, playerY, true);
+          const newSpeed = handlePaddleCollision(true);
           setBallSpeed(newSpeed);
           next.x = PADDLE_OFFSET + PADDLE_WIDTH;
           
@@ -290,12 +332,13 @@ export const Pong = () => {
           });
         }
         
+        // Computer paddle collision
         else if (next.x + BALL_SIZE >= GAME_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH &&
                  next.x <= GAME_WIDTH - PADDLE_OFFSET &&
                  next.y + BALL_SIZE >= computerY &&
                  next.y <= computerY + PADDLE_HEIGHT) {
           
-          const newSpeed = handlePaddleCollision(next, computerY, false);
+          const newSpeed = handlePaddleCollision(false);
           setBallSpeed(newSpeed);
           next.x = GAME_WIDTH - PADDLE_OFFSET - PADDLE_WIDTH - BALL_SIZE;
           
@@ -310,6 +353,7 @@ export const Pong = () => {
           });
         }
 
+        // Scoring logic
         if (next.x <= 0) {
           setComputerScore(prev => prev + 1);
           setRallyLength(0);
@@ -353,37 +397,48 @@ export const Pong = () => {
     };
   }, [gameRunning, ballSpeed, playerY, computerY, difficulty, handlePaddleCollision, handleWallCollision]);
 
+  // Handle keyboard controls
   useEffect(() => {
-    const handleMouseMove = (e) => {
-      if (!gameRunning || !containerRef.current) return;
-      
-      const rect = containerRef.current.getBoundingClientRect();
-      const mouseY = e.clientY - rect.top;
-      setPlayerY(Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, mouseY)));
-    };
-
-    const handleKeyPress = (e) => {
-      if (!gameRunning) return;
-      
-      const moveAmount = 25;
-      if (e.key === 'ArrowUp') {
-        setPlayerY(prev => Math.max(0, prev - moveAmount));
-      } else if (e.key === 'ArrowDown') {
-        setPlayerY(prev => Math.min(GAME_HEIGHT - PADDLE_HEIGHT, prev + moveAmount));
+    const handleKeyDown = (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setKeyState(prev => ({ ...prev, [e.key]: true }));
       }
     };
 
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('keydown', handleKeyPress);
+    const handleKeyUp = (e) => {
+      if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        setKeyState(prev => ({ ...prev, [e.key]: false }));
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keyup', handleKeyUp);
 
     return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('keydown', handleKeyPress);
-      if (frameIdRef.current) {
-        cancelAnimationFrame(frameIdRef.current);
-      }
+      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keyup', handleKeyUp);
     };
-  }, [gameRunning]);
+  }, []);
+
+  // Update player paddle position based on key state
+  useEffect(() => {
+    if (!gameRunning) return;
+
+    const movePlayer = () => {
+      setPlayerY(prev => {
+        let newY = prev;
+        if (keyState.ArrowUp) newY -= PADDLE_SPEED;
+        if (keyState.ArrowDown) newY += PADDLE_SPEED;
+        return Math.max(0, Math.min(GAME_HEIGHT - PADDLE_HEIGHT, newY));
+      });
+      frameIdRef.current = requestAnimationFrame(movePlayer);
+    };
+
+    frameIdRef.current = requestAnimationFrame(movePlayer);
+    return () => cancelAnimationFrame(frameIdRef.current);
+  }, [gameRunning, keyState]);
 
   useEffect(() => {
     return () => {
@@ -407,28 +462,27 @@ export const Pong = () => {
         <CenterLine />
         <Paddle 
           $isPlayer
-          style={{ 
-            left: `${PADDLE_OFFSET}px`, 
-            top: `${playerY}px`,
-            width: `${PADDLE_WIDTH}px`,
-            height: `${PADDLE_HEIGHT}px`
-          }} 
+          style={{
+            ...getPaddleStyle(true),
+            top: playerY
+          }}
         />
         <Paddle 
-          style={{ 
-            right: `${PADDLE_OFFSET}px`, 
-            top: `${computerY}px`,
-            width: `${PADDLE_WIDTH}px`,
-            height: `${PADDLE_HEIGHT}px`
-          }} 
+          style={{
+            ...getPaddleStyle(false),
+            top: computerY
+          }}
         />
         <Ball 
-          style={{ 
-            left: `${ballPos.x}px`, 
-            top: `${ballPos.y}px`,
-            width: `${BALL_SIZE}px`,
-            height: `${BALL_SIZE}px`
-          }} 
+          style={{
+            width: BALL_SIZE,
+            height: BALL_SIZE,
+            left: ballPos.x,
+            top: ballPos.y,
+            background: equippedSkin?.styles?.ball?.background || '#fff',
+            boxShadow: equippedSkin?.styles?.ball?.boxShadow || '0 0 10px rgba(255, 255, 255, 0.5)',
+            border: equippedSkin?.styles?.ball?.border || '2px solid rgba(255, 255, 255, 0.8)'
+          }}
         />
         <ScoreDisplay side="left" style={{ fontSize: '64px' }}>{playerScore}</ScoreDisplay>
         <ScoreDisplay side="right" style={{ fontSize: '64px' }}>{computerScore}</ScoreDisplay>

@@ -1,121 +1,133 @@
 import styled, { keyframes } from 'styled-components';
 
 const fadeIn = keyframes`
-  from { opacity: 0; transform: translateY(20px); }
-  to { opacity: 1; transform: translateY(0); }
+  from { opacity: 0; }
+  to { opacity: 1; }
 `;
 
-const float = keyframes`
-  0% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-  100% { transform: translateY(0px); }
+const bounceIn = keyframes`
+  0% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1.05); }
+  70% { transform: scale(0.9); }
+  100% { transform: scale(1); opacity: 1; }
 `;
 
-export const Container = styled.div`
+const pulse = keyframes`
+  0% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); }
+`;
+
+export const PortalContainer = styled.div`
+  width: 100%;
   min-height: 100vh;
   padding: 2rem;
-  background: linear-gradient(135deg, #1a1a1a 0%, #2c3e50 100%);
-  color: white;
+  background-color: ${props => props.theme.colors.background};
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  overflow-x: hidden;
 `;
 
-export const Header = styled.header`
-  text-align: center;
-  margin-bottom: 4rem;
-  animation: ${fadeIn} 1s ease-out;
+export const ShopCard = styled.div`
+  width: 200px;
+  height: 60px;
+  background: linear-gradient(45deg, #FFD700, #FFA500);
+  border-radius: 15px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 15px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 5px 15px rgba(255, 215, 0, 0.3);
+  animation: ${bounceIn} 0.5s ease-out;
+  margin-bottom: 30px;
+  align-self: flex-end;
+
+  &:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 8px 20px rgba(255, 215, 0, 0.5);
+    background: linear-gradient(45deg, #FFA500, #FFD700);
+  }
 `;
 
-export const Title = styled.h1`
-  font-size: 3.5rem;
-  margin-bottom: 1rem;
-  background: linear-gradient(to right, #3498db, #2ecc71);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+export const ShopIcon = styled.span`
+  font-size: 24px;
+  animation: ${pulse} 2s infinite;
 `;
 
-export const Subtitle = styled.p`
-  font-size: 1.2rem;
-  color: #95a5a6;
-  margin-bottom: 2rem;
+export const ShopTitle = styled.h2`
+  color: #2c3e50;
+  font-size: 1.5em;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+  margin: 0;
 `;
 
-export const GameGrid = styled.div`
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+export const GamesGrid = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   gap: 2rem;
-  max-width: 1400px;
-  margin: 0 auto;
-  padding: 0 1rem;
+  width: 100%;
+  max-width: 1200px;
+  padding: 1rem;
+  animation: ${fadeIn} 0.5s ease-out;
+  margin-top: 2rem;
+`;
+
+export const GamesRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 30px;
+  width: 100%;
 `;
 
 export const GameCard = styled.div`
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 20px;
+  background: #2c3e50;
+  border-radius: 15px;
   overflow: hidden;
   transition: all 0.3s ease;
-  animation: ${fadeIn} 1s ease-out;
-  box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-  border: 1px solid rgba(255,255,255,0.1);
-  backdrop-filter: blur(5px);
+  cursor: pointer;
+  position: relative;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+  animation: ${fadeIn} 0.5s ease-out;
+  aspect-ratio: 16/9;
 
   &:hover {
     transform: translateY(-10px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.3);
-    border-color: ${props => props.$color || props.theme.colors.primary};
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+
+    img {
+      transform: scale(1.1);
+    }
+
+    h3 {
+      background: rgba(0, 0, 0, 0.8);
+    }
   }
 `;
 
 export const GameImage = styled.img`
   width: 100%;
-  height: 200px;
+  height: 100%;
   object-fit: cover;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
   transition: transform 0.3s ease;
-
-  ${GameCard}:hover & {
-    transform: scale(1.05);
-  }
 `;
 
-export const GameInfo = styled.div`
-  padding: 1.5rem;
-`;
-
-export const GameTitle = styled.h2`
-  font-size: 1.8rem;
-  margin-bottom: 1rem;
+export const GameTitle = styled.h3`
   color: white;
-  font-weight: 600;
-`;
-
-export const GameDescription = styled.p`
-  color: #95a5a6;
-  margin-bottom: 1.5rem;
-  line-height: 1.6;
-`;
-
-export const PlayButton = styled.button`
-  background: ${props => props.$color || props.theme.colors.primary};
-  color: white;
-  padding: 0.8rem 2rem;
-  border-radius: 30px;
-  border: none;
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-decoration: none;
-  display: inline-block;
+  font-size: 1.5em;
+  margin: 0;
+  padding: 15px;
   text-align: center;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.2);
-
-  &:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 20px rgba(0,0,0,0.3);
-    background: ${props => props.$color ? `${props.$color}dd` : props.theme.colors.secondary};
-  }
-
-  &:active {
-    transform: translateY(0);
-  }
+  background: rgba(0, 0, 0, 0.6);
+  position: absolute;
+  bottom: 0;
+  width: 100%;
+  backdrop-filter: blur(5px);
+  transition: background 0.3s ease;
 `; 
