@@ -12,6 +12,7 @@ import Layout from './pages/Layout';
 import Shop from './pages/Shop';
 import SignIn from './components/auth/SignIn';
 import SignUp from './components/auth/SignUp';
+import Landing from './components/Landing';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 
 const router = createBrowserRouter([
@@ -21,6 +22,10 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
+        element: <Landing />,
+      },
+      {
+        path: "/home",
         element: <ProtectedRoute><Home /></ProtectedRoute>,
       },
       {
@@ -51,10 +56,10 @@ const router = createBrowserRouter([
         path: "/signup",
         element: <SignUp />,
       },
-      // Catch all route - redirect to signin
+      // Catch all route - redirect to landing
       {
         path: "*",
-        element: <Navigate to="/signin" replace />,
+        element: <Navigate to="/" replace />,
       },
     ],
   },

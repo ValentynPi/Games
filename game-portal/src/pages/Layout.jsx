@@ -12,18 +12,19 @@ const LayoutContainer = styled.div`
 
 const MainContent = styled.main`
   flex: 1;
-  padding: 20px;
+  padding: ${props => props.isLandingPage ? '0' : '20px'};
 `;
 
 function Layout() {
   const { user } = useAuth();
   const location = useLocation();
   const isAuthPage = location.pathname === '/signin' || location.pathname === '/signup';
+  const isLandingPage = location.pathname === '/';
 
   return (
     <LayoutContainer>
-      {user && !isAuthPage && <Navigation />}
-      <MainContent>
+      {user && !isAuthPage && !isLandingPage && <Navigation />}
+      <MainContent isLandingPage={isLandingPage}>
         <Outlet />
       </MainContent>
     </LayoutContainer>
