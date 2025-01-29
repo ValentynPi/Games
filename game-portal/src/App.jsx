@@ -1,45 +1,50 @@
 import React from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { Home } from './components/Home';
-import { Snake } from './games/Snake';
-import { Tetris } from './games/Tetris';
+import Snake from './games/Snake';
+import Tetris from './games/Tetris';
 import { Pong } from './games/Pong';
-import { UnblockMe } from './games/UnblockMe';
-import { MiniMetro } from './games/MiniMetro';
+import UnblockMe from './games/UnblockMe';
 import { CoinProvider } from './contexts/CoinContext';
 import { InventoryProvider } from './contexts/InventoryContext';
+import Layout from './pages/Layout';
+import { Shop } from './components/Shop';
 
 const router = createBrowserRouter([
   {
     path: "/",
-    element: <Home />,
-  },
-  {
-    path: "/games/snake",
-    element: <Snake />,
-  },
-  {
-    path: "/games/tetris",
-    element: <Tetris />,
-  },
-  {
-    path: "/games/pong",
-    element: <Pong />,
-  },
-  {
-    path: "/games/unblock-me",
-    element: <UnblockMe />,
-  },
-  {
-    path: "/games/mini-metro",
-    element: <MiniMetro />,
+    element: <Layout />,
+    children: [
+      {
+        path: "/",
+        element: <Home />,
+      },
+      {
+        path: "/games/pong",
+        element: <Pong />,
+      },
+      {
+        path: "/games/snake",
+        element: <Snake />,
+      },
+      {
+        path: "/games/tetris",
+        element: <Tetris />,
+      },
+      {
+        path: "/games/unblockme",
+        element: <UnblockMe />,
+      },
+      {
+        path: "/shop",
+        element: <Shop />,
+      },
+    ],
   },
 ], {
-  basename: process.env.PUBLIC_URL || '/',
   future: {
     v7_startTransition: true,
-    v7_relativeSplatPath: true,
-    v7_normalizeFormMethod: true
+    v7_relativeSplatPath: true
   }
 });
 

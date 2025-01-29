@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCoins } from '../../contexts/CoinContext';
 import { useInventory } from '../../contexts/InventoryContext';
@@ -22,7 +22,8 @@ import {
   EquipButton
 } from './styles';
 
-const SHOP_ITEMS = {
+// Game-specific items
+const GAME_ITEMS = {
   pong: [
     {
       id: 'pong_neon',
@@ -35,24 +36,46 @@ const SHOP_ITEMS = {
       type: 'skin',
       game: 'pong',
       styles: {
-        baseStyle: {
-          height: 80,
-          transition: 'all 0.3s ease'
-        },
         playerPaddle: {
           background: 'linear-gradient(to right, #ff00ff, #00ffff)',
           boxShadow: '0 0 20px rgba(255, 0, 255, 0.7)',
           border: '2px solid #ff00ff'
-        },
-        computerPaddle: {
-          background: 'linear-gradient(to left, #00ffff, #ff00ff)',
-          boxShadow: '0 0 20px rgba(0, 255, 255, 0.7)',
-          border: '2px solid #00ffff'
-        },
-        ball: {
-          background: 'linear-gradient(45deg, #ff00ff, #00ffff)',
-          boxShadow: '0 0 15px rgba(255, 0, 255, 0.7)',
-          border: '2px solid #ff00ff'
+        }
+      }
+    },
+    {
+      id: 'pong_synthwave',
+      name: 'Synthwave',
+      price: 175,
+      image: '/assets/skins/pong/synthwave.png',
+      preview: '/assets/skins/pong/synthwave_preview.png',
+      description: 'Retro-futuristic style with neon grid effects',
+      rarity: 'epic',
+      type: 'skin',
+      game: 'pong',
+      styles: {
+        playerPaddle: {
+          background: '#2d0066',
+          boxShadow: '0 0 25px #ff0066',
+          border: '2px solid #ff0066'
+        }
+      }
+    },
+    {
+      id: 'pong_matrix',
+      name: 'Matrix',
+      price: 150,
+      image: '/assets/skins/pong/matrix.png',
+      preview: '/assets/skins/pong/matrix_preview.png',
+      description: 'Enter the Matrix with digital rain effects',
+      rarity: 'epic',
+      type: 'skin',
+      game: 'pong',
+      styles: {
+        playerPaddle: {
+          background: '#000000',
+          boxShadow: '0 0 15px #00ff00',
+          border: '2px solid #00ff00'
         }
       }
     },
@@ -136,8 +159,8 @@ const SHOP_ITEMS = {
   snake: [
     {
       id: 'snake_neon',
-      name: 'Neon Snake',
-      price: 100,
+      name: 'Neon Viper',
+      price: 150,
       image: '/assets/skins/snake/neon.png',
       preview: '/assets/skins/snake/neon_preview.png',
       description: 'A glowing neon snake that lights up the path!',
@@ -147,13 +170,24 @@ const SHOP_ITEMS = {
       styles: {
         snake: {
           background: 'linear-gradient(45deg, #ff00ff, #00ffff)',
-          boxShadow: '0 0 15px rgba(255, 0, 255, 0.7)',
-          border: '2px solid #ff00ff'
-        },
-        food: {
-          background: 'radial-gradient(#00ffff, #ff00ff)',
-          boxShadow: '0 0 10px rgba(0, 255, 255, 0.7)',
-          border: '2px solid #00ffff'
+          boxShadow: '0 0 15px rgba(255, 0, 255, 0.7)'
+        }
+      }
+    },
+    {
+      id: 'snake_retro',
+      name: 'Retro Arcade',
+      price: 100,
+      image: '/assets/skins/snake/retro.png',
+      preview: '/assets/skins/snake/retro_preview.png',
+      description: 'Classic arcade style with pixel art graphics',
+      rarity: 'rare',
+      type: 'skin',
+      game: 'snake',
+      styles: {
+        snake: {
+          background: '#000080',
+          border: '2px solid #ffff00'
         }
       }
     },
@@ -170,87 +204,139 @@ const SHOP_ITEMS = {
       styles: {
         snake: {
           background: 'linear-gradient(45deg, #ffd700, #ffa500)',
-          boxShadow: '0 0 25px rgba(255, 215, 0, 0.8)',
-          border: '3px solid #ffd700'
-        },
-        food: {
-          background: 'radial-gradient(#ffd700, #ffa500)',
-          boxShadow: '0 0 20px rgba(255, 215, 0, 0.8)',
-          border: '3px solid #ffd700'
+          boxShadow: '0 0 25px rgba(255, 215, 0, 0.8)'
         }
       }
     }
   ],
   tetris: [
     {
-      id: 'tetris_neon',
-      name: 'Neon Blocks',
-      price: 150,
-      image: '/assets/skins/tetris/neon.png',
-      preview: '/assets/skins/tetris/neon_preview.png',
-      description: 'Glowing neon blocks that light up as they fall!',
+      id: 'tetris_cyberpunk',
+      name: 'Cyberpunk',
+      price: 200,
+      image: '/assets/skins/tetris/cyberpunk.png',
+      preview: '/assets/skins/tetris/cyberpunk_preview.png',
+      description: 'Futuristic neon blocks with cyber effects',
       rarity: 'epic',
       type: 'skin',
       game: 'tetris',
       styles: {
         block: {
-          background: 'linear-gradient(45deg, #ff00ff, #00ffff)',
-          boxShadow: '0 0 15px rgba(255, 0, 255, 0.7)',
-          border: '2px solid #ff00ff'
+          background: '#1a0033',
+          border: '2px solid #ff00ff',
+          boxShadow: '0 0 30px #ff00ff'
         }
       }
     },
     {
-      id: 'tetris_crystal',
-      name: 'Crystal Blocks',
-      price: 180,
-      image: '/assets/skins/tetris/crystal.png',
-      preview: '/assets/skins/tetris/crystal_preview.png',
-      description: 'Beautiful crystal blocks that shimmer as they move!',
-      rarity: 'epic',
+      id: 'tetris_minimal',
+      name: 'Minimalist',
+      price: 150,
+      image: '/assets/skins/tetris/minimal.png',
+      preview: '/assets/skins/tetris/minimal_preview.png',
+      description: 'Clean and modern minimalist design',
+      rarity: 'rare',
       type: 'skin',
       game: 'tetris',
       styles: {
         block: {
-          background: 'linear-gradient(135deg, rgba(255,255,255,0.4), rgba(255,255,255,0.1))',
-          boxShadow: '0 0 20px rgba(255, 255, 255, 0.5)',
-          border: '2px solid rgba(255, 255, 255, 0.6)',
-          backdropFilter: 'blur(5px)'
+          background: '#ffffff',
+          border: '2px solid #000000',
+          color: '#000000'
         }
       }
     }
   ],
   unblockme: [
     {
-      id: 'unblockme_ice',
-      name: 'Ice Blocks',
-      price: 120,
-      image: '/assets/skins/unblockme/ice.png',
-      preview: '/assets/skins/unblockme/ice_preview.png',
-      description: 'Cool ice blocks that slide smoothly!',
+      id: 'unblockme_wooden',
+      name: 'Wooden Classic',
+      price: 125,
+      image: '/assets/skins/unblockme/wooden.png',
+      preview: '/assets/skins/unblockme/wooden_preview.png',
+      description: 'Classic wooden texture with realistic grain',
       rarity: 'rare',
       type: 'skin',
       game: 'unblockme',
       styles: {
-        baseStyle: {
-          background: 'linear-gradient(135deg, #a8e6ff, #4fc3f7)',
-          boxShadow: '0 0 15px rgba(79, 195, 247, 0.5)',
-          border: '2px solid #4fc3f7'
-        },
-        mainBlock: {
-          background: 'linear-gradient(45deg, #ff4081, #f50057)',
-          boxShadow: '0 0 20px rgba(255, 64, 129, 0.6)',
-          border: '2px solid #ff4081'
-        },
-        horizontalBlock: {
-          background: 'linear-gradient(90deg, #66bb6a, #43a047)',
-          boxShadow: '0 0 15px rgba(102, 187, 106, 0.5)',
-          border: '2px solid #66bb6a'
-        },
-        verticalBlock: {
-          background: 'linear-gradient(180deg, #5c6bc0, #3949ab)',
-          boxShadow: '0 0 15px rgba(92, 107, 192, 0.5)',
-          border: '2px solid #5c6bc0'
+        block: {
+          background: '#8b4513',
+          boxShadow: '0 0 15px rgba(139, 69, 19, 0.5)',
+          border: '2px solid #654321'
+        }
+      }
+    },
+    {
+      id: 'unblockme_futuristic',
+      name: 'Futuristic',
+      price: 200,
+      image: '/assets/skins/unblockme/futuristic.png',
+      preview: '/assets/skins/unblockme/futuristic_preview.png',
+      description: 'High-tech blocks with holographic effects',
+      rarity: 'epic',
+      type: 'skin',
+      game: 'unblockme',
+      styles: {
+        block: {
+          background: '#001a33',
+          boxShadow: '0 0 20px #00ccff',
+          border: '2px solid #00ccff'
+        }
+      }
+    }
+  ],
+  'mini-metro': [
+    {
+      id: 'mini_metro_neon',
+      name: 'Neon Metro',
+      price: 200,
+      image: '/assets/skins/mini-metro/neon.png',
+      preview: '/assets/skins/mini-metro/neon_preview.png',
+      description: 'Neon-lit stations and tracks that glow in the dark',
+      rarity: 'epic',
+      type: 'skin',
+      game: 'mini-metro',
+      styles: {
+        station: {
+          background: '#000000',
+          boxShadow: '0 0 20px #ff00ff',
+          border: '2px solid #ff00ff'
+        }
+      }
+    },
+    {
+      id: 'mini_metro_blueprint',
+      name: 'Blueprint',
+      price: 150,
+      image: '/assets/skins/mini-metro/blueprint.png',
+      preview: '/assets/skins/mini-metro/blueprint_preview.png',
+      description: 'Technical drawing style with blueprint aesthetics',
+      rarity: 'rare',
+      type: 'skin',
+      game: 'mini-metro',
+      styles: {
+        station: {
+          background: '#003366',
+          boxShadow: '0 0 15px rgba(255, 255, 255, 0.5)',
+          border: '2px solid #ffffff'
+        }
+      }
+    },
+    {
+      id: 'mini_metro_night',
+      name: 'Night Mode',
+      price: 175,
+      image: '/assets/skins/mini-metro/night.png',
+      preview: '/assets/skins/mini-metro/night_preview.png',
+      description: 'Dark theme with golden accents',
+      rarity: 'epic',
+      type: 'skin',
+      game: 'mini-metro',
+      styles: {
+        station: {
+          background: '#000000',
+          boxShadow: '0 0 25px rgba(255, 215, 0, 0.3)',
+          border: '2px solid #ffd700'
         }
       }
     }
@@ -265,11 +351,23 @@ const RARITY_COLORS = {
 };
 
 export default function Shop() {
-  const [selectedGame, setSelectedGame] = useState('pong');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedGame, setSelectedGame] = useState('all');
   const [selectedItem, setSelectedItem] = useState(null);
+  const [shopItems, setShopItems] = useState({ all: [], skins: [], effects: [] });
   const { coins, spendCoins } = useCoins();
   const { hasItem, addItem, equipItem, getEquippedSkin } = useInventory();
   const navigate = useNavigate();
+
+  // Populate shop items
+  useEffect(() => {
+    const allItems = Object.values(GAME_ITEMS).flat();
+    setShopItems({
+      all: allItems,
+      skins: allItems.filter(item => item.type === 'skin'),
+      effects: allItems.filter(item => item.type === 'effect')
+    });
+  }, []);
 
   const handlePurchase = (item) => {
     if (coins >= item.price && !hasItem(item.id)) {
@@ -283,43 +381,84 @@ export default function Shop() {
   };
 
   const handleEquip = (e, item) => {
-    e.stopPropagation(); // Prevent modal from opening
+    e.stopPropagation();
     if (hasItem(item.id)) {
       equipItem(item);
     }
   };
 
+  const getItemsToDisplay = () => {
+    let items = shopItems[selectedCategory] || [];
+    if (selectedGame !== 'all') {
+      items = items.filter(item => item.game === selectedGame);
+    }
+    return items;
+  };
+
   return (
     <ShopContainer>
       <CategoryTabs>
-        <TabButton 
-          active={selectedGame === 'pong'} 
+        <TabButton
+          $active={selectedCategory === 'all'}
+          onClick={() => setSelectedCategory('all')}
+        >
+          All Items
+        </TabButton>
+        <TabButton
+          $active={selectedCategory === 'skins'}
+          onClick={() => setSelectedCategory('skins')}
+        >
+          Skins
+        </TabButton>
+        <TabButton
+          $active={selectedCategory === 'effects'}
+          onClick={() => setSelectedCategory('effects')}
+        >
+          Effects
+        </TabButton>
+      </CategoryTabs>
+
+      <CategoryTabs>
+        <TabButton
+          $active={selectedGame === 'all'}
+          onClick={() => setSelectedGame('all')}
+        >
+          All Games
+        </TabButton>
+        <TabButton
+          $active={selectedGame === 'pong'}
           onClick={() => setSelectedGame('pong')}
         >
           Pong
         </TabButton>
-        <TabButton 
-          active={selectedGame === 'snake'} 
+        <TabButton
+          $active={selectedGame === 'snake'}
           onClick={() => setSelectedGame('snake')}
         >
           Snake
         </TabButton>
-        <TabButton 
-          active={selectedGame === 'tetris'} 
+        <TabButton
+          $active={selectedGame === 'tetris'}
           onClick={() => setSelectedGame('tetris')}
         >
           Tetris
         </TabButton>
-        <TabButton 
-          active={selectedGame === 'unblockme'} 
+        <TabButton
+          $active={selectedGame === 'unblockme'}
           onClick={() => setSelectedGame('unblockme')}
         >
           Unblock Me
         </TabButton>
+        <TabButton
+          $active={selectedGame === 'mini-metro'}
+          onClick={() => setSelectedGame('mini-metro')}
+        >
+          Mini Metro
+        </TabButton>
       </CategoryTabs>
 
       <ItemsGrid>
-        {(SHOP_ITEMS[selectedGame] || []).map(item => {
+        {getItemsToDisplay().map(item => {
           const isOwned = hasItem(item.id);
           const equippedSkin = getEquippedSkin(item.game);
           const isEquipped = equippedSkin?.id === item.id;

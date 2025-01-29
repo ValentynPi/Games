@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { useCoins } from './CoinContext';
 
 const InventoryContext = createContext();
 
@@ -11,6 +12,7 @@ export const useInventory = () => {
 };
 
 export const InventoryProvider = ({ children }) => {
+  const { spendCoins } = useCoins();
   const [inventory, setInventory] = useState(() => {
     const savedInventory = localStorage.getItem('playerInventory');
     return savedInventory ? JSON.parse(savedInventory) : {
@@ -19,7 +21,8 @@ export const InventoryProvider = ({ children }) => {
         snake: [],
         tetris: [],
         doodlejump: [],
-        unblockme: []
+        unblockme: [],
+        'mini-metro': []
       },
       effects: [],
       equipped: {
@@ -27,8 +30,10 @@ export const InventoryProvider = ({ children }) => {
         snake: null,
         tetris: null,
         doodlejump: null,
-        unblockme: null
-      }
+        unblockme: null,
+        'mini-metro': null
+      },
+      ownedGames: ['snake'] // Snake is free
     };
   });
 
@@ -113,6 +118,17 @@ export const InventoryProvider = ({ children }) => {
     return inventory.skins[game] || [];
   };
 
+  const purchaseGame = (gameId, price) => {
+    if (spendCoins(price)) {
+      setInventory(prev => ({
+        ...prev,
+        ownedGames: [...prev.ownedGames, gameId]
+      }));
+      return true;
+    }
+    return false;
+  };
+
   return (
     <InventoryContext.Provider value={{
       inventory,
@@ -121,7 +137,9 @@ export const InventoryProvider = ({ children }) => {
       equipItem,
       unequipItem,
       getEquippedSkin,
-      getGameSkins
+      getGameSkins,
+      ownedGames: inventory.ownedGames,
+      purchaseGame
     }}>
       {children}
     </InventoryContext.Provider>

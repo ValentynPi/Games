@@ -33,13 +33,13 @@ export const TabButton = styled.button`
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 8px;
-  background: ${props => props.active ? '#3498db' : '#2c3e50'};
+  background: ${props => props.$active ? '#3498db' : '#2c3e50'};
   color: white;
   cursor: pointer;
   transition: all 0.2s;
 
   &:hover {
-    background: ${props => props.active ? '#2980b9' : '#34495e'};
+    background: ${props => props.$active ? '#2980b9' : '#34495e'};
   }
 `;
 
