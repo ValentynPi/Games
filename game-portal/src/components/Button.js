@@ -1,7 +1,7 @@
 import styled from 'styled-components';
 
 export const Button = styled.button`
-  background: ${props => props.theme.colors.primary};
+  background: ${props => props.theme?.colors?.primary || '#3498db'};
   color: white;
   padding: 0.8rem 1.5rem;
   border: none;
@@ -11,6 +11,6 @@ export const Button = styled.button`
   font-size: 1rem;
   
   &:hover {
-    background: ${props => props.theme.colors.secondary};
+    background: ${props => props.theme?.colors?.secondary || '#2980b9'};
   }
 `; 

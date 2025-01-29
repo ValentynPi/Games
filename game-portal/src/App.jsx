@@ -1,5 +1,5 @@
 import React from 'react';
-import { createBrowserRouter, RouterProvider } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import { Home } from './components/Home';
 import Snake from './games/Snake';
 import Tetris from './games/Tetris';
@@ -7,8 +7,12 @@ import { Pong } from './games/Pong';
 import UnblockMe from './games/UnblockMe';
 import { CoinProvider } from './contexts/CoinContext';
 import { InventoryProvider } from './contexts/InventoryContext';
+import { AuthProvider } from './contexts/AuthContext';
 import Layout from './pages/Layout';
-import { Shop } from './components/Shop';
+import Shop from './pages/Shop';
+import SignIn from './components/auth/SignIn';
+import SignUp from './components/auth/SignUp';
+import ProtectedRoute from './components/auth/ProtectedRoute';
 
 const router = createBrowserRouter([
   {
@@ -17,27 +21,40 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <Home />,
+        element: <ProtectedRoute><Home /></ProtectedRoute>,
       },
       {
         path: "/games/pong",
-        element: <Pong />,
+        element: <ProtectedRoute><Pong /></ProtectedRoute>,
       },
       {
         path: "/games/snake",
-        element: <Snake />,
+        element: <ProtectedRoute><Snake /></ProtectedRoute>,
       },
       {
         path: "/games/tetris",
-        element: <Tetris />,
+        element: <ProtectedRoute><Tetris /></ProtectedRoute>,
       },
       {
         path: "/games/unblockme",
-        element: <UnblockMe />,
+        element: <ProtectedRoute><UnblockMe /></ProtectedRoute>,
       },
       {
         path: "/shop",
-        element: <Shop />,
+        element: <ProtectedRoute><Shop /></ProtectedRoute>,
+      },
+      {
+        path: "/signin",
+        element: <SignIn />,
+      },
+      {
+        path: "/signup",
+        element: <SignUp />,
+      },
+      // Catch all route - redirect to signin
+      {
+        path: "*",
+        element: <Navigate to="/signin" replace />,
       },
     ],
   },
@@ -48,16 +65,16 @@ const router = createBrowserRouter([
   }
 });
 
-const App = () => {
+function App() {
   return (
-    <React.StrictMode>
+    <AuthProvider>
       <CoinProvider>
         <InventoryProvider>
           <RouterProvider router={router} />
         </InventoryProvider>
       </CoinProvider>
-    </React.StrictMode>
+    </AuthProvider>
   );
-};
+}
 
 export default App; 

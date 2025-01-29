@@ -1,122 +1,181 @@
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 
 const fadeIn = keyframes`
   from { opacity: 0; }
   to { opacity: 1; }
 `;
 
-const slideIn = keyframes`
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
-`;
-
-const glowAnimation = keyframes`
-  0% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
-  50% { box-shadow: 0 0 20px rgba(255, 255, 255, 0.8); }
-  100% { box-shadow: 0 0 5px rgba(255, 255, 255, 0.5); }
+const float = keyframes`
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+  100% { transform: translateY(0px); }
 `;
 
 export const ShopContainer = styled.div`
+  min-height: 100vh;
   padding: 2rem;
-  width: 100%;
-  max-width: 1200px;
-  margin: 0 auto;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  color: #fff;
 `;
 
 export const CategoryTabs = styled.div`
   display: flex;
   gap: 1rem;
   margin-bottom: 2rem;
+  padding: 1rem;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #3498db #1a1a2e;
+  
+  &::-webkit-scrollbar {
+    height: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: #1a1a2e;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: #3498db;
+    border-radius: 6px;
+  }
 `;
 
 export const TabButton = styled.button`
   padding: 0.75rem 1.5rem;
   border: none;
   border-radius: 8px;
-  background: ${props => props.$active ? '#3498db' : '#2c3e50'};
-  color: white;
+  background: ${props => props.$active ? 
+    'linear-gradient(135deg, #3498db, #2980b9)' : 
+    'rgba(52, 152, 219, 0.1)'};
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s ease;
+  white-space: nowrap;
+  backdrop-filter: blur(10px);
+  border: 1px solid ${props => props.$active ? '#3498db' : 'rgba(52, 152, 219, 0.2)'};
 
   &:hover {
-    background: ${props => props.$active ? '#2980b9' : '#34495e'};
+    transform: translateY(-2px);
+    background: ${props => props.$active ? 
+      'linear-gradient(135deg, #3498db, #2980b9)' : 
+      'rgba(52, 152, 219, 0.2)'};
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.2);
   }
 `;
 
 export const ItemsGrid = styled.div`
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 2rem;
+  padding: 1rem;
 `;
 
 export const ItemCard = styled.div`
-  background: #2c3e50;
-  border-radius: 12px;
+  position: relative;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
   padding: 1rem;
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 1rem;
   cursor: pointer;
-  transition: transform 0.2s;
+  transition: all 0.3s ease;
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  animation: ${fadeIn} 0.5s ease-out;
 
   &:hover {
     transform: translateY(-5px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    border-color: rgba(52, 152, 219, 0.5);
+    
+    img {
+      transform: scale(1.05);
+    }
   }
 `;
 
-export const ItemImage = styled.img`
+export const ItemImage = styled.div`
   width: 100%;
-  height: 150px;
-  object-fit: cover;
-  border-radius: 8px;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  position: relative;
+  background: ${props => props.style?.background || 'rgba(0, 0, 0, 0.2)'};
+  box-shadow: ${props => props.style?.boxShadow || 'none'};
+  border: ${props => props.style?.border || 'none'};
+  transition: all 0.3s ease;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
 `;
 
 export const ItemTitle = styled.h3`
-  color: white;
+  font-size: 1.25rem;
+  font-weight: 600;
   margin: 0;
-  font-size: 1.2rem;
+  color: #fff;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 `;
 
-export const ItemPrice = styled.div`
+export const ItemRarity = styled.span`
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  background: rgba(0, 0, 0, 0.5);
+  color: ${props => props.color};
+  backdrop-filter: blur(5px);
+  border: 1px solid ${props => props.color};
+  box-shadow: 0 2px 10px ${props => props.color}40;
+`;
+
+export const PriceTag = styled.div`
   display: flex;
   align-items: center;
   gap: 0.5rem;
+  font-size: 1.2rem;
+  font-weight: 700;
   color: #f1c40f;
-  font-weight: bold;
+  margin-top: auto;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
 `;
 
 export const CoinIcon = styled.span`
-  font-size: 1.2rem;
+  font-size: 1.4rem;
+  animation: ${float} 2s ease-in-out infinite;
 `;
 
 export const BuyButton = styled.button`
   width: 100%;
-  padding: 0.75rem;
+  padding: 1rem;
   border: none;
-  border-radius: 6px;
-  background: ${props => props.disabled ? '#95a5a6' : '#2ecc71'};
+  border-radius: 8px;
+  background: ${props => props.equipped ? 
+    'linear-gradient(135deg, #e74c3c, #c0392b)' : 
+    'linear-gradient(135deg, #3498db, #2980b9)'};
   color: white;
+  font-weight: 600;
+  font-size: 1rem;
   cursor: ${props => props.disabled ? 'not-allowed' : 'pointer'};
-  transition: background 0.2s;
+  opacity: ${props => props.disabled ? 0.5 : 1};
+  transition: all 0.3s ease;
 
-  &:hover {
-    background: ${props => props.disabled ? '#95a5a6' : '#27ae60'};
-  }
-`;
-
-export const EquipButton = styled.button`
-  width: 100%;
-  padding: 0.75rem;
-  border: none;
-  border-radius: 6px;
-  background: ${props => props.equipped ? '#e74c3c' : '#3498db'};
-  color: white;
-  cursor: pointer;
-  transition: background 0.2s;
-
-  &:hover {
-    background: ${props => props.equipped ? '#c0392b' : '#2980b9'};
+  &:hover:not(:disabled) {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(52, 152, 219, 0.3);
   }
 `;
 
@@ -131,19 +190,23 @@ export const PreviewModal = styled.div`
   justify-content: center;
   align-items: center;
   z-index: 1000;
+  backdrop-filter: blur(10px);
+  animation: ${fadeIn} 0.3s ease-out;
 `;
 
 export const ModalContent = styled.div`
-  background: #2c3e50;
+  background: rgba(26, 26, 46, 0.95);
   padding: 2rem;
-  border-radius: 12px;
+  border-radius: 20px;
   max-width: 500px;
   width: 90%;
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 1rem;
+  gap: 1.5rem;
+  border: 1px solid rgba(52, 152, 219, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 `;
 
 export const CloseButton = styled.button`
@@ -157,26 +220,18 @@ export const CloseButton = styled.button`
   cursor: pointer;
   padding: 0.5rem;
   line-height: 1;
+  opacity: 0.7;
+  transition: opacity 0.3s ease;
+
+  &:hover {
+    opacity: 1;
+  }
 `;
 
 export const ItemDescription = styled.p`
-  color: #bdc3c7;
+  color: #a0aec0;
   text-align: center;
   margin: 0;
-`;
-
-export const PriceTag = styled.div`
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  color: #f1c40f;
-  font-size: 1.2rem;
-  font-weight: bold;
-`;
-
-export const ItemRarity = styled.span`
-  color: ${props => props.color};
-  font-size: 0.9rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
+  font-size: 1.1rem;
+  line-height: 1.6;
 `;

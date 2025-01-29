@@ -29,8 +29,7 @@ export const POWERUP_TYPES = {
 
 // Food types and their properties
 export const FOOD_TYPES = {
-  REGULAR: { points: 10, color: '#e74c3c', symbol: '🍎' },
-  GOLDEN: { points: 30, color: '#f1c40f', symbol: '🌟' },
-  SPECIAL: { points: 50, color: '#9b59b6', symbol: '💎' },
-  BONUS: { points: 100, color: '#2ecc71', symbol: '🎁' }
+  REGULAR: 'regular',
+  SPECIAL: 'special',
+  GOLDEN: 'golden'
 }; 

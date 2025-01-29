@@ -13,7 +13,6 @@ import {
   Food,
   Score,
   Stats,
-  PowerupItem,
   PowerupBar,
   PowerupIndicator,
   ComboDisplay,
@@ -35,6 +34,24 @@ const BASE_GAME_SPEED = 150;
 const SPEED_INCREASE = 2;
 const SPECIAL_APPLE_CHANCE = 0.1;
 const GOLDEN_APPLE_CHANCE = 0.05;
+
+const PageContainer = styled.div`
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+  padding: 2rem;
+`;
+
+const GameWrapper = styled.div`
+  position: relative;
+  width: ${GAME_WIDTH}px;
+  height: ${GAME_HEIGHT}px;
+  margin: 2rem auto;
+`;
 
 const getRandomPosition = (snakeBody) => {
   let attempts = 0;
@@ -309,107 +326,87 @@ const Snake = () => {
   };
 
   return (
-    <div style={{ 
-      width: '100%', 
-      height: '100vh', 
-      display: 'flex', 
-      flexDirection: 'column',
-      justifyContent: 'center', 
-      alignItems: 'center',
-      backgroundColor: '#2c3e50',
-      gap: '30px',
-      padding: '40px'
-    }}>
-      <CoinDisplay />
-      <div style={{
-        position: 'relative',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        gap: '20px',
-        padding: '40px',
-        backgroundColor: 'rgba(0, 0, 0, 0.2)',
-        borderRadius: '16px',
-        boxShadow: '0 0 40px rgba(0, 0, 0, 0.3)',
-        minWidth: '800px'
-      }}>
-        <SnakeGameContainer
-          ref={gameContainerRef}
-          tabIndex="0"
-          $width={GAME_WIDTH}
-          $height={GAME_HEIGHT}
-          onKeyDown={handleKeyDown}
-        >
-          {snake.map((segment, index) => (
-            <SnakeSegment
-              key={index}
+    <PageContainer>
+      <GameWrapper>
+        <GameContainer>
+          <SnakeGameContainer
+            ref={gameContainerRef}
+            tabIndex="0"
+            $width={GAME_WIDTH}
+            $height={GAME_HEIGHT}
+            onKeyDown={handleKeyDown}
+          >
+            {snake.map((segment, index) => (
+              <SnakeSegment
+                key={index}
+                style={{
+                  left: `${segment.x * CELL_SIZE}px`,
+                  top: `${segment.y * CELL_SIZE}px`
+                }}
+                isHead={index === 0}
+                skin={equippedSkin?.styles}
+              />
+            ))}
+            <Food
               style={{
-                left: `${segment.x * CELL_SIZE}px`,
-                top: `${segment.y * CELL_SIZE}px`
+                left: `${food.x * CELL_SIZE}px`,
+                top: `${food.y * CELL_SIZE}px`
               }}
-              isHead={index === 0}
               skin={equippedSkin?.styles}
             />
-          ))}
-          <Food
-            style={{
-              left: `${food.x * CELL_SIZE}px`,
-              top: `${food.y * CELL_SIZE}px`
-            }}
-            skin={equippedSkin?.styles}
-          />
-          <Score>Score: {score}</Score>
-          <Stats>
-            Level: {level}<br/>
-            Speed: {Math.floor((BASE_GAME_SPEED - gameSpeed) / BASE_GAME_SPEED * 100)}%<br/>
-            Food: {foodEaten}<br/>
-            Time: {Math.floor(timeAlive / 10)}s<br/>
-            Max Combo: {maxCombo}
-          </Stats>
+            <Score>Score: {score}</Score>
+            <Stats>
+              Level: {level}<br/>
+              Speed: {Math.floor((BASE_GAME_SPEED - gameSpeed) / BASE_GAME_SPEED * 100)}%<br/>
+              Food: {foodEaten}<br/>
+              Time: {Math.floor(timeAlive / 10)}s<br/>
+              Max Combo: {maxCombo}
+            </Stats>
 
-          {/* Add powerup display */}
-          {powerup && (
-            <PowerupItem
-              style={{
-                left: `${powerup.x}px`,
-                top: `${powerup.y}px`,
-                backgroundColor: POWERUP_TYPES[powerup.type].color
-              }}
-            >
-              {POWERUP_TYPES[powerup.type].symbol}
-            </PowerupItem>
-          )}
-
-          {/* Add active powerup indicators */}
-          <PowerupBar>
-            {activePowerups.map((type, index) => (
-              <PowerupIndicator
-                key={index}
-                $color={POWERUP_TYPES[type].color}
+            {/* Add powerup display */}
+            {powerup && (
+              <PowerupItem
+                style={{
+                  left: `${powerup.x}px`,
+                  top: `${powerup.y}px`,
+                  backgroundColor: POWERUP_TYPES[powerup.type].color
+                }}
               >
-                {POWERUP_TYPES[type].symbol}
-              </PowerupIndicator>
-            ))}
-          </PowerupBar>
+                {POWERUP_TYPES[powerup.type].symbol}
+              </PowerupItem>
+            )}
 
-          {/* Add combo display */}
-          {combo > 1 && (
-            <ComboDisplay>
-              Combo: x{combo}
-            </ComboDisplay>
-          )}
+            {/* Add active powerup indicators */}
+            <PowerupBar>
+              {activePowerups.map((type, index) => (
+                <PowerupIndicator
+                  key={index}
+                  $color={POWERUP_TYPES[type].color}
+                >
+                  {POWERUP_TYPES[type].symbol}
+                </PowerupIndicator>
+              ))}
+            </PowerupBar>
 
-          {/* Add pause menu */}
-          {isPaused && (
-            <PauseMenu>
-              <h2>Paused</h2>
-              <p>Press ESC to resume</p>
-              <Button onClick={() => setIsPaused(false)}>Resume</Button>
-              <Button onClick={() => navigate('/')}>Quit</Button>
-            </PauseMenu>
-          )}
-        </SnakeGameContainer>
-      </div>
+            {/* Add combo display */}
+            {combo > 1 && (
+              <ComboDisplay>
+                Combo: x{combo}
+              </ComboDisplay>
+            )}
+
+            {/* Add pause menu */}
+            {isPaused && (
+              <PauseMenu>
+                <h2>Paused</h2>
+                <p>Press ESC to resume</p>
+                <Button onClick={() => setIsPaused(false)}>Resume</Button>
+                <Button onClick={() => navigate('/')}>Quit</Button>
+              </PauseMenu>
+            )}
+          </SnakeGameContainer>
+        </GameContainer>
+      </GameWrapper>
 
       {showMenu && (
         <Menu>
@@ -445,7 +442,7 @@ const Snake = () => {
           </Button>
         </Menu>
       )}
-    </div>
+    </PageContainer>
   );
 };
 
